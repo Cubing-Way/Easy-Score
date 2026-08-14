@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>VexFlow Print Example</title>
+  <script src="https://cdn.jsdelivr.net/npm/vexflow@5.0.0/build/cjs/vexflow.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+
+    #controls {
+      margin-bottom: 20px;
+    }
+
+    #title {
+      text-align: center;
+      font-size: 24px;
+      font-weight: bold;
+      margin-bottom: 20px;
+    }
+
+    #notation {
+      display: flex;
+      justify-content: center;
+    }
+
+    /* Print settings */
+    @media print {
+      #controls {
+        display: none; /* Hide print button */
+      }
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      @page {
+        size: A4 portrait;
+        margin: 20mm;
+      }
+      #notation {
+        page-break-inside: avoid;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <button onclick="window.print()">Print</button>
+  </div>
+
+  <div id="container">
+      <div id="title">My Music Score</div>
+      <div id="notation"></div>
+  </div>
+
+
+  <script>
+    // Use VexFlow global object
+    const VF = VexFlow;
+    const div = document.getElementById("notation");
+    const renderer = new VF.Renderer(div, VF.Renderer.Backends.SVG);
+
+    // Configure rendering size
+    renderer.resize(700, 200);
+    const context = renderer.getContext();
+
+    // Create a stave
+    const stave = new VF.Stave(10, 40, 1000);
+    stave.addClef("treble").addTimeSignature("4/4");
+    stave.setContext(context).draw();
+
+    // Notes
+    const notes = [
+      new VF.StaveNote({ keys: ["c/4"], duration: "q" }),
+      new VF.StaveNote({ keys: ["d/4"], duration: "q" }),
+      new VF.StaveNote({ keys: ["e/4"], duration: "q" }),
+      new VF.StaveNote({ keys: ["f/4"], duration: "q" })
+    ];
+
+    // Create a voice and format it
+    const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
+    voice.addTickables(notes);
+
+    new VF.Formatter().joinVoices([voice]).format([voice], 500);
+    voice.draw(context, stave);
+
+
+
+// Example: draw something on the canvas
+const canvas = document.getElementById('myCanvas');
+const ctx = canvas.getContext('2d');
+ctx.fillStyle = 'lightyellow';
+ctx.fillRect(0, 0, canvas.width, canvas.height);
+ctx.fillStyle = 'darkblue';
+ctx.font = '24px Arial';
+ctx.fillText('Hello Canvas!', 10, 40);
+
+// Save canvas as PNG
+document.getElementById('saveBtn').addEventListener('click', () => {
+  const image = canvas.toDataURL('image/png'); // base64 PNG
+
+  // Download the image
+  const link = document.createElement('a');
+  link.href = image;
+  link.download = 'canvas-image.png';
+  link.click();
+});
+
+
+  </script>
+</body>
+</html>

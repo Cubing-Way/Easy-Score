@@ -1,8 +1,18 @@
 import Vex from "vexflow";
-import { flattenArray, stavesArray, redrawStaves, recalculateStaveWidths, firstStavesByYPosition, context } from "./staveManagement.js";
+import { flattenArray, redrawStaves, recalculateStaveWidths } from "./staves/staveDrawing.js";
 import { selectedStaves } from "./selector.js";
 import { staveVoiceCounter } from "./options.js";
 import { noteHeadFlag, addNoteHeads } from "./configurations.js";
+import { staveState } from './staves/staveState.js';
+
+function getCurrentStavesArray() {
+    return staveState.stavesArray || [];
+}
+
+function getCurrentContext() {
+    return staveState.context;
+}
+
 const { Stave, StaveNote, Beam, Formatter, Accidental, Dot, StaveTie, Curve, Annotation } = Vex;
 
 function addNewClef(stave, clef) {
@@ -20,8 +30,8 @@ function addClefHandler(clef) {
 
     //Add Clef to all first staves (if none are selected)
     if (selectedStaves.size === 0 && !flag) {
-        flattenArray(stavesArray).forEach(stave => {
-            if (stave === firstStavesByYPosition[stave.getY()]) {
+        flattenArray(getCurrentStavesArray()).forEach(stave => {
+            if (stave === staveState.firstStavesByYPosition[stave.getY()]) {
                 addNewClef(stave, clef);
             }
         });
@@ -44,8 +54,8 @@ function addTimeSigHandler(timeSignature) {
 
     //Add time signature to all first staves (if none are selected)
     if (selectedStaves.size === 0 && !flag) {
-        flattenArray(stavesArray).forEach(stave => {
-            if (stave === firstStavesByYPosition[stave.getY()]) {
+        flattenArray(getCurrentStavesArray()).forEach(stave => {
+            if (stave === staveState.firstStavesByYPosition[stave.getY()]) {
                 addTimeSignature(stave, timeSignature);
             }
         });
@@ -69,8 +79,8 @@ function addKeySigHandler(key) {
 
     //Add key signature to all first staves (if none are selected)
     if (selectedStaves.size === 0 && !flag) {
-        flattenArray(stavesArray).forEach(stave => {
-            if (stave === firstStavesByYPosition[stave.getY()]) {
+        flattenArray(getCurrentStavesArray()).forEach(stave => {
+            if (stave === staveState.firstStavesByYPosition[stave.getY()]) {
                 addKeySignature(stave, key);
                 recalculateStaveWidths(stave.getY());
             }

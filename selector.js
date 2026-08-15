@@ -1,8 +1,19 @@
-import { context, stavesArray, flattenArray } from './staveManagement.js'; // Adjust the path to where your context is defined
+import { staveState } from './staves/staveState.js';
+
+function getCurrentContext() {
+    return staveState.context;
+}
+
+function getCurrentStavesArray() {
+    return Array.isArray(staveState.stavesArray) ? staveState.stavesArray.flat() : [];
+}
 
 // Function to add a clickable rect for a stave
 function addClickRectForStave(stave) {
-       const staveBoundingBox = stave.getBoundingBox();
+    const context = getCurrentContext();
+    if (!context || !context.svg) return;
+
+    const staveBoundingBox = stave.getBoundingBox();
     if (staveBoundingBox) {
         const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
         rect.setAttribute("x", staveBoundingBox.x);
@@ -25,6 +36,9 @@ let clickedStaves = true;
 let outputFlag = false;
 
 function getMousePosition(event) {
+    const context = getCurrentContext();
+    if (!context || !context.svg) return { x: 0, y: 0 };
+
     // Fallback if getScreenCTM is unavailable
     const rect = context.svg.getBoundingClientRect();
     const scaleX = context.svg.viewBox.baseVal.width / rect.width;
@@ -37,7 +51,8 @@ function getMousePosition(event) {
 }
 
 function onMouseDown(event) {
-    if (outputFlag) return;
+    const context = getCurrentContext();
+    if (outputFlag || !context || !context.svg) return;
 
     const { x, y } = getMousePosition(event);
 
@@ -67,7 +82,8 @@ function onMouseDown(event) {
 
 
 function onMouseMove(event) {
-    if (!isDragging) return;
+    const context = getCurrentContext();
+    if (!isDragging || !context || !context.svg) return;
 
     const { x: currentX, y: currentY } = getMousePosition(event);
 
@@ -82,32 +98,32 @@ function onMouseMove(event) {
     selectionRect.setAttribute("height", height);
 
     const selectionBox = { x, y, width, height };
+    const stavesArray = getCurrentStavesArray();
 
-    stavesArray.forEach((staveLine) => {
-        staveLine.forEach((stave) => {
-            const staveBoundingBox = stave.getBoundingBox();
-            if (staveBoundingBox) {
-                const staveBox = {
-                    x: staveBoundingBox.x,
-                    y: staveBoundingBox.y,
-                    width: staveBoundingBox.w,
-                    height: staveBoundingBox.h,
-                };
+    stavesArray.forEach((stave) => {
+        const staveBoundingBox = stave.getBoundingBox();
+        if (staveBoundingBox) {
+            const staveBox = {
+                x: staveBoundingBox.x,
+                y: staveBoundingBox.y,
+                width: staveBoundingBox.w,
+                height: staveBoundingBox.h,
+            };
 
-                if (isIntersecting(selectionBox, staveBox)) {
-                    selectStave(stave);
-                    clickedStaves = true;
-                } else {
-                    deselectStave(stave);
-                }
+            if (isIntersecting(selectionBox, staveBox)) {
+                selectStave(stave);
+                clickedStaves = true;
+            } else {
+                deselectStave(stave);
             }
-        });
+        }
     });
 }
 
 
 function onMouseUp() {
-    if (!isDragging) return;
+    const context = getCurrentContext();
+    if (!isDragging || !context || !context.svg) return;
 
     isDragging = false;
 
@@ -150,10 +166,10 @@ function isIntersecting(rect1, rect2) {
 }
 
 function getStaveAtPosition(x, y) {
-    return flattenArray(stavesArray).find(stave => {
-            const bbox = stave.getBoundingBox();
-            return bbox && x >= bbox.x && x <= bbox.x + bbox.w && y >= bbox.y && y <= bbox.y + bbox.h;
-        });
+    return getCurrentStavesArray().find(stave => {
+        const bbox = stave.getBoundingBox();
+        return bbox && x >= bbox.x && x <= bbox.x + bbox.w && y >= bbox.y && y <= bbox.y + bbox.h;
+    });
 }
 
 function selectStave(stave) {
@@ -188,6 +204,9 @@ function deselectAllStaves() {
 }
 
 function highlightStaveByBoundingBox(bbox) {
+    const context = getCurrentContext();
+    if (!context || !context.svg) return;
+
     const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
     rect.setAttribute("x", bbox.x);
     rect.setAttribute("y", bbox.y);
@@ -205,7 +224,10 @@ function highlightStaveByBoundingBox(bbox) {
 document.addEventListener("mousedown", onMouseDown);
 document.addEventListener("mousemove", onMouseMove);
 document.addEventListener("mouseup", onMouseUp);
-output.addEventListener("mouseleave", onMouseLeave);
-output.addEventListener("mouseenter", onMouseEnter);
+const output = document.getElementById("output");
+if (output) {
+    output.addEventListener("mouseleave", onMouseLeave);
+    output.addEventListener("mouseenter", onMouseEnter);
+}
 
 export { selectedStaves, addClickRectForStave };

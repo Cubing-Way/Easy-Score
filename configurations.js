@@ -1,8 +1,11 @@
-import { setScale, setOffSetTitleY, context, redrawStaves, stavesArray, setStavesArray, scale } from "./staveManagement.js";
+import { setScale, setOffSetTitleY, setStavesArray } from "./staves/staveController.js";
 import Vex from "vexflow";
+import { redrawStaves } from "./staves/staveDrawing.js";
+import { scale } from "./staves/staveDrawing.js"; 
 const { Stave, StaveNote, Beam, Formatter, Accidental, Dot, StaveTie, Curve, Annotation } = Vex;
 import { notesArray, voices, addVoice, addVoiceHandler, setNotesArray} from "./sheetmusic.js";
 import { lineObj } from "./options.js";
+import { staveState } from './staves/staveState.js';
 
 const savedState = {};
 let lastCopy;
@@ -90,7 +93,7 @@ function newCopy() {
 }
 
 function saveState() {
-  savedState.staves = stavesArray.map(line =>
+  savedState.staves = (staveState.stavesArray || []).map(line =>
     line.map(stave => {
       const data = {
         x: stave.getX(),
@@ -100,25 +103,25 @@ function saveState() {
         id: stave.attrs.id
       };
 
-    // Save clefs, time signatures, key signatures
-    stave.getModifiers().forEach(mod => {
-      const type = mod.constructor.name;
-      if (type === "Clef") {
-        data.modifiers.push({ type: "Clef", value: mod.type });
-      }
-      if (type === "TimeSignature") {
-        data.modifiers.push({ type: "TimeSignature", value: mod.timeSpec });
-      }
-      if (type === "KeySignature") {
-        data.modifiers.push({ type: "KeySignature", value: mod.keySpec });
-      }
-    });
-    return data;
-  })
-);
+      stave.getModifiers().forEach(mod => {
+        const type = mod.constructor.name;
+        if (type === "Clef") {
+          data.modifiers.push({ type: "Clef", value: mod.type });
+        }
+        if (type === "TimeSignature") {
+          data.modifiers.push({ type: "TimeSignature", value: mod.timeSpec });
+        }
+        if (type === "KeySignature") {
+          data.modifiers.push({ type: "KeySignature", value: mod.keySpec });
+        }
+      });
 
-savedState.notes = JSON.parse(JSON.stringify(notesArray));
-savedState.scale = Number(scale);
+      return data;
+    })
+  );
+
+  savedState.notes = JSON.parse(JSON.stringify(notesArray));
+  savedState.scale = Number(staveState.scale || scale || 1.15);
 }
 
 function restoreStavesFromSafeCopy(safeCopy, context) {
@@ -147,15 +150,18 @@ function restoreStavesFromSafeCopy(safeCopy, context) {
 }
 
 function restoreState(save, setAsLast = true) {
-  setStavesArray(restoreStavesFromSafeCopy(save, context));
-  setNotesArray(save.notes);
+  const activeContext = staveState.context;
+  const restoredStaves = restoreStavesFromSafeCopy(save, activeContext);
+
+  setStavesArray(restoredStaves);
+  setNotesArray(save.notes || []);
 
   if (save.scale !== undefined && save.scale !== null) {
     setScale(Number(save.scale));
   }
 
   lineObj.line = -1;
-  stavesArray.forEach(() => lineObj.line++);
+  restoredStaves.forEach(() => lineObj.line++);
   if (lineObj.line === -1) lineObj.line = 0;
 
   redrawStaves();

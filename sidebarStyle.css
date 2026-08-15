@@ -379,8 +379,12 @@ button {
 }
 
 
-#title {
+.a4-paper h1.content,
+.a4-paper .page-title,
+#title,
+#title2 {
   text-align: center;
+  display: block;
 }
 
 #output svg {
@@ -388,15 +392,7 @@ button {
 }
 
 
-#output {
-  width: 90%;
-  height: auto;
-  position: absolute;
-  top: 30px; /* Start at the top of the A4 paper */
-  left: 65%;
-  transform: translateX(-50%); /* Scales the content down to 70% */
-  transform-origin: top left; /* Keeps the content aligned to the top center of the container */
-}
+
 
 #a4-paper {
   width: 900px; /* A4 width at 96 DPI */

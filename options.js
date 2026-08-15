@@ -1,9 +1,14 @@
 // options.js
 
-import { addBar, stavesArray, redrawStaves, flattenArray, updateCapturedYLevels, capturedYLevels } from "./staveManagement.js"
+import { updateCapturedYLevels, capturedYLevels} from "./staves/staveBars.js";
+import { addBar } from "./staves/staveBars.js";
 import { addClefHandler, addKeySigHandler, addTimeSigHandler, addVoiceHandler, notesArray } from "./sheetmusic.js";
 import { selectedStaves } from "./selector.js";
 import { recordHistory } from "./configurations.js";
+import {  redrawStaves, flattenArray } from "./staves/staveDrawing.js";
+import { staveState } from "./staves/staveState.js";
+
+let stavesArray = staveState.stavesArray;
 
 const buttonContainer = document.getElementById("button-container");
 const createButton = document.getElementById("Add Clef");
@@ -14,7 +19,14 @@ let yLevelCounter = 0;
 let lineObj = {line: 0};
 let staveVoiceCounter = 0;
 
+function resetPageState() {
+  clickCounts = {};
+  yLevelCounter = 0;
+  lineObj.line = 0;
+}
+
 function addNewLine() {
+  stavesArray = staveState.stavesArray;
   if (stavesArray.length !== 0) lineObj.line++;
   const newArray = [];
   stavesArray.push(newArray);
@@ -22,8 +34,6 @@ function addNewLine() {
   createNewButton();
   recordHistory();
 }
-
-addNewLine();
 
 function createNewButton(event, param) {
   if (event) param = false;
@@ -561,4 +571,4 @@ document.getElementById('Add/Change Notes').addEventListener('click', transformT
 
 
 
-export {clickCounts, refactorButtonUpdate, updateYLevelCounter, lineObj, yLevelCounter, staveVoiceCounter, addNewLine};
+export {clickCounts, refactorButtonUpdate, updateYLevelCounter, lineObj, yLevelCounter, staveVoiceCounter, addNewLine, resetPageState};

@@ -1,0 +1,15 @@
+const staveState = {
+    div: null,
+    title: null,
+    renderer: null,
+    context: null,
+    stavesArray: [],
+    firstStavesByYPosition: {},
+    lastStavesByYPosition: {},
+    pageRenderMap: {},
+    activePageId: null,
+    width: 770,
+    scale: 1.15,
+};
+
+export { staveState };

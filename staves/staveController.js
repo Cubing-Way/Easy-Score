@@ -71,6 +71,11 @@ function setStavesArray(newArray) {
     newArray.forEach((line) => {
       if (!Array.isArray(line)) return;
       line.forEach((stave) => {
+        stave.attrs = stave.attrs || {};
+        if (!stave.attrs.id) {
+          stave.attrs.id = `stave-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        }
+
         const y = stave.getY();
         if (!staveState.firstStavesByYPosition[y]) {
           staveState.firstStavesByYPosition[y] = stave;

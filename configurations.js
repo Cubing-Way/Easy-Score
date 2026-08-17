@@ -5,7 +5,8 @@ import { scale } from "./staves/staveDrawing.js";
 const { Stave, StaveNote, Beam, Formatter, Accidental, Dot, StaveTie, Curve, Annotation } = Vex;
 import { notesArray, voices, addVoice, addVoiceHandler, setNotesArray} from "./sheetmusic.js";
 import { lineObj } from "./options.js";
-import { staveState } from './staves/staveState.js';
+import { staveState, projectState } from './staves/staveState.js';
+import { initializeDefaultPage } from "./staves/page.js";
 
 const savedState = {};
 let lastCopy;
@@ -18,6 +19,7 @@ function persistLastProjectId(projectId) {
     localStorage.setItem("lastSelectedProjectId", projectId);
   } else {
     localStorage.removeItem("lastSelectedProjectId");
+
   }
 }
 
@@ -44,6 +46,62 @@ function clearCanvas() {
   recordHistory();
 }
 
+function safeJsonClone(value) {
+  const seen = new WeakSet();
+
+  return JSON.parse(JSON.stringify(value, (key, currentValue) => {
+    if (typeof currentValue === "object" && currentValue !== null) {
+      if (seen.has(currentValue)) {
+        return undefined;
+      }
+      seen.add(currentValue);
+    }
+
+    return currentValue;
+  }));
+}
+
+function serializeStaves(stavesArray) {
+  return (stavesArray || []).map(line =>
+    line.map(stave => {
+      const data = {
+        x: stave.getX(),
+        y: stave.getY(),
+        width: stave.getWidth(),
+        modifiers: [],
+        id: stave.attrs.id
+      };
+
+      stave.getModifiers().forEach(mod => {
+        const type = mod.constructor.name;
+
+        if (type === "Clef") {
+          data.modifiers.push({
+            type: "Clef",
+            value: mod.type
+          });
+        }
+
+        if (type === "TimeSignature") {
+          data.modifiers.push({
+            type: "TimeSignature",
+            value: mod.timeSpec
+          });
+        }
+
+        if (type === "KeySignature") {
+          data.modifiers.push({
+            type: "KeySignature",
+            value: mod.keySpec
+          });
+        }
+      });
+
+      return data;
+    })
+  );
+}
+
 function recordHistory() {
   saveState();
 
@@ -52,7 +110,7 @@ function recordHistory() {
 
   const snapshot = {
     id: snapshotId,
-    ...JSON.parse(JSON.stringify(savedState))
+    ...safeJsonClone(savedState)
   };
 
   historyArray.push(snapshot);
@@ -93,35 +151,20 @@ function newCopy() {
 }
 
 function saveState() {
-  savedState.staves = (staveState.stavesArray || []).map(line =>
-    line.map(stave => {
-      const data = {
-        x: stave.getX(),
-        y: stave.getY(),
-        width: stave.getWidth(),
-        modifiers: [],
-        id: stave.attrs.id
-      };
-
-      stave.getModifiers().forEach(mod => {
-        const type = mod.constructor.name;
-        if (type === "Clef") {
-          data.modifiers.push({ type: "Clef", value: mod.type });
-        }
-        if (type === "TimeSignature") {
-          data.modifiers.push({ type: "TimeSignature", value: mod.timeSpec });
-        }
-        if (type === "KeySignature") {
-          data.modifiers.push({ type: "KeySignature", value: mod.keySpec });
-        }
-      });
-
-      return data;
-    })
-  );
+  savedState.staves = serializeStaves(staveState.stavesArray);
 
   savedState.notes = JSON.parse(JSON.stringify(notesArray));
-  savedState.scale = Number(staveState.scale || scale || 1.15);
+
+  savedState.scale = Number(
+    staveState.scale || scale || 1.15
+  );
+
+  savedState.pages = projectState.pagesArray.map(page => ({
+    output: page.output,
+    title: page.title,
+    stavesArray: serializeStaves(page.stavesArray)
+  }));
+  console.log(savedState.pages)
 }
 
 function restoreStavesFromSafeCopy(safeCopy, context) {
@@ -149,12 +192,68 @@ function restoreStavesFromSafeCopy(safeCopy, context) {
   );
 }
 
-function restoreState(save, setAsLast = true) {
+function restorePageStavesFromSafeCopy(page, context) {
+  if (!Array.isArray(page?.stavesArray)) return [];
+
+  return page.stavesArray.map(line =>
+    line.map(data => {
+      const stave = new Stave(data.x, data.y, data.width);
+      stave.attrs = stave.attrs || {};
+      stave.attrs.id = data.id;
+
+      (data.modifiers || []).forEach(mod => {
+        if (mod.type === "Clef") {
+          stave.addClef(mod.value);
+        }
+        if (mod.type === "TimeSignature") {
+          stave.addTimeSignature(mod.value);
+        }
+        if (mod.type === "KeySignature") {
+          stave.addKeySignature(mod.value);
+        }
+      });
+
+      stave.setContext(context);
+      return stave;
+    })
+  );
+}
+
+async function restorePagesFromSave(pages = []) {
+  if (!Array.isArray(pages) || pages.length === 0) return;
+
+  const { newPage } = await import("./staves/page.js");
+
+  pages.forEach(page => {
+    const createdPage = newPage(page.output, page.title);
+    const restoredStaves = restorePageStavesFromSafeCopy(page, createdPage.context);
+    createdPage.stavesArray = restoredStaves;
+
+    // Ensure the page in projectState.pagesArray has the restored staves
+    const storedPage = projectState.pagesArray[projectState.pagesArray.length - 1];
+    if (storedPage && Array.isArray(restoredStaves)) {
+      storedPage.stavesArray = restoredStaves;
+      storedPage.context = createdPage.context;
+    }
+  });
+}
+
+async function restoreState(save, setAsLast = true) {
+
   const activeContext = staveState.context;
   const restoredStaves = restoreStavesFromSafeCopy(save, activeContext);
 
   setStavesArray(restoredStaves);
   setNotesArray(save.notes || []);
+  document.getElementById("main").innerHTML = "";
+  await restorePagesFromSave(save.pages);
+
+  // Set context to first page before calling setScale
+  if (projectState.pagesArray.length > 0) {
+    const firstPage = projectState.pagesArray[0];
+    staveState.context = firstPage.context;
+    staveState.stavesArray = firstPage.stavesArray;
+  }
 
   if (save.scale !== undefined && save.scale !== null) {
     setScale(Number(save.scale));
@@ -164,7 +263,14 @@ function restoreState(save, setAsLast = true) {
   restoredStaves.forEach(() => lineObj.line++);
   if (lineObj.line === -1) lineObj.line = 0;
 
-  redrawStaves();
+  projectState.pagesArray.forEach(page => {
+
+    staveState.context = page.context;
+    staveState.stavesArray = page.stavesArray;
+    console.log(page.stavesArray)
+    redrawStaves();
+  });
+
 
   if (setAsLast) {
     // Only set lastCopy when we *want* to track this as the active copy
@@ -176,6 +282,7 @@ function restoreState(save, setAsLast = true) {
 
     persistLastProjectId(lastCopy?.id || null);
   }
+
 }
 
 
@@ -187,7 +294,7 @@ function updateCopy() {
         saveState();
         copyArray[index] = { 
           id: copy.id, // preserve same ID
-          ...JSON.parse(JSON.stringify(savedState)) 
+          ...safeJsonClone(savedState)
         };
         localStorage.setItem("savedStates", JSON.stringify(copyArray));
         lastCopy = copyArray[index]; // refresh reference
@@ -218,13 +325,14 @@ function deleteCopy(button1, button2) {
   });
 
   localStorage.setItem("savedStates", JSON.stringify(copyArray));
+  localStorage.removeItem("lastSelectedProjectId");
 }
 
 function createNewSave(filename) {
   saveState();
   const copy = {
     id: crypto.randomUUID(), // unique ID for tracking
-    ...JSON.parse(JSON.stringify(savedState)),
+    ...safeJsonClone(savedState),
     title: filename
   };
   const arrayInd = copyArray.push(copy) - 1; // index of the new save
@@ -247,11 +355,11 @@ function createNewSave(filename) {
 
 function loadAllCopies() {
   const data = localStorage.getItem("savedStates");
+
   if (data) {
-    copyArray.length = 0; // clear old
+    copyArray.length = 0;
     copyArray.push(...JSON.parse(data));
 
-    // recreate buttons for each save
     copyArray.forEach((copy, index) => {
       const newButton = document.createElement("button");
       newButton.textContent = copy.title || `Save ${index + 1}`;
@@ -264,24 +372,26 @@ function loadAllCopies() {
 
       buttonContainer.insertBefore(newButton, restoreButton);
     });
+  }
 
-    const lastProjectId = localStorage.getItem("lastSelectedProjectId");
-    if (lastProjectId) {
-      const lastSavedCopy = copyArray.find(copy => copy.id === lastProjectId);
-      if (lastSavedCopy) {
-        restoreState(lastSavedCopy);
-      }
+  const lastProjectId = localStorage.getItem("lastSelectedProjectId");
+
+  if (lastProjectId) {
+    const lastSavedCopy = copyArray.find(
+      copy => copy.id === lastProjectId
+    );
+
+    if (lastSavedCopy) {
+      restoreState(lastSavedCopy);
+      return;
     }
   }
+
+  // No saved project was selected/found
+  initializeDefaultPage();
 }
 
 function saveAsFunction() {
-  // Grab text from a div
-  const currentTitle = document.getElementById("title").textContent.trim();
-
-  // Pre-fill input with it
-  filenameInput.value = currentTitle || "Untitled";
-
   modal.style.display = "flex";
 };  
 
@@ -304,8 +414,10 @@ function deleteCurrCopy()  {
   // Select the buttons corresponding to this index
   const saveBtn = document.querySelector(`#savesContainer .save-btn[data-index="${index}"]`);
 
-  deleteCopy(saveBtn); // reuse existing deleteCopy logic
+  deleteCopy(saveBtn); // reuse existing deleteCopy 'logic
   lastCopy = null; // clear reference after deletions
+  document.getElementById("main").innerHTML = "";
+  initializeDefaultPage();
 };
 
 document.getElementById("redo").addEventListener("click", redo);
@@ -346,10 +458,6 @@ document.addEventListener("keydown", e => {
     }
   }
 });
-
-
-
-
 
 function recreateButton() {
     // Create a new button element
@@ -421,8 +529,7 @@ function recreateButton2() {
     });
   }
 
-  //Set initial title
-  document.getElementById("title").textContent = "Title";
+
 
 // Add the initial event listener to the button
 document.getElementById('Change Scale').addEventListener('click', transformToInput);
@@ -606,4 +713,4 @@ document.getElementById("clear").addEventListener("click", clearCanvas);
 
   document.getElementById('Add NoteHeads').addEventListener('click', addNoteHeads);
 
-  export { noteHeadFlag, addNoteHeads, recordHistory }
+  export { noteHeadFlag, addNoteHeads, recordHistory, saveState }

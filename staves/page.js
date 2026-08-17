@@ -1,25 +1,49 @@
 //page.js
 
 import { addNewLine, resetPageState } from "../options.js";
-import { staveState } from "./staveState.js";
+import { staveState, projectState } from "./staveState.js";
 import { setStavesArray } from "./staveController.js";
+import { saveState } from "../configurations.js";
 import Vex from "vexflow"
 const { Stave, StaveNote, Beam, Formatter, Renderer, StaveConnector } = Vex;
 
-const defaultRender = newRender("output", "title");
 
-let div = defaultRender.div;
-let title = defaultRender.title;
-let renderer = defaultRender.renderer;
-let context = defaultRender.context;
-let stavesArray = defaultRender.stavesArray;
+let outputCounter = 0;
+let titleCounter = 0;
+let div;
+let title;
+let renderer;
+let context;
+let stavesArray;
+let output;
+let title2;
+let defaultRender = null;
 
-staveState.div = defaultRender.div;
-staveState.title = defaultRender.title;
-staveState.renderer = defaultRender.renderer;
-staveState.context = defaultRender.context;
-staveState.stavesArray = defaultRender.stavesArray;
-setStavesArray(defaultRender.stavesArray);
+/* Chat help me do this but working
+if there was a saved projected selecet
+initiatlizedefaultpage()
+else nothing */
+
+function initializeDefaultPage() {
+  if (defaultRender) return defaultRender;
+
+  defaultRender = createNewPage();
+
+  div = defaultRender.div;
+  title = defaultRender.titleElement;
+  renderer = defaultRender.renderer;
+  context = defaultRender.context;
+  stavesArray = defaultRender.stavesArray;
+
+  staveState.div = defaultRender.div;
+  staveState.title = defaultRender.title;
+  staveState.renderer = defaultRender.renderer;
+  staveState.context = defaultRender.context;
+  staveState.stavesArray = defaultRender.stavesArray;
+  setStavesArray(defaultRender.stavesArray);
+
+  return defaultRender;
+}
 
 function newRender(output, title) {
   const div = document.getElementById(output);
@@ -29,7 +53,7 @@ function newRender(output, title) {
   const context = renderer.getContext();
   const stavesArray = [];
 
-  return { div, title: titleElement, renderer, context, stavesArray };
+  return { div, titleElement, renderer, context, stavesArray, output, title };
 }
 
 function createNewPage() {
@@ -45,6 +69,7 @@ function createNewPage() {
   staveState.renderer = newPgRender.renderer;
   staveState.context = newPgRender.context;
   staveState.stavesArray = newPgRender.stavesArray;
+  return newPgRender;
 }
 
 function setActiveRender(renderInfo) {
@@ -64,16 +89,30 @@ function setActiveRender(renderInfo) {
   stavesArray = renderInfo.stavesArray;
 }
 
-function newPage(output, title) {
+function newPage(output, title, initialStavesArray = []) {
   const newDiv = document.createElement("div");
+
   newDiv.className = "a4-paper";
   newDiv.innerHTML = `
     <h1 id="${title}" class="content page-title">New page</h1>
     <div id="${output}" class="content"></div>
   `;
+
   document.getElementById("main").appendChild(newDiv);
 
   const nextRender = newRender(output, title);
+
+  if (Array.isArray(initialStavesArray)) {
+    nextRender.stavesArray = initialStavesArray;
+  }
+
+  projectState.pagesArray.push({
+    output,
+    title,
+    stavesArray: nextRender.stavesArray,
+    context: nextRender.context
+  });
+
   return nextRender;
 }
 
@@ -89,15 +128,17 @@ document.getElementById("delete page").addEventListener("click", () => {
   
   const lastPage = pages[pages.length - 1];
   lastPage.remove();
+
+  projectState.pagesArray.pop();
+  saveState();
+
   alert("Last page deleted!");
 });
 
-let outputCounter = 0;
-let titleCounter = 0;
 
 function genNewOutputAndTitle() {
-  outputCounter += 1;
-  titleCounter += 1;
+  outputCounter++;
+  titleCounter++;
 
   return {
     output: `output-${outputCounter}`,
@@ -110,8 +151,15 @@ function setContext(newContext) {
   staveState.context = newContext;
 }
 
-addNewLine();
+
 
 document.getElementById("new page").addEventListener("click", createNewPage);
 
-export { newRender, defaultRender, setContext };
+export { 
+  newRender, 
+  defaultRender, 
+  setContext, 
+  newPage, 
+  initializeDefaultPage, 
+  setActiveRender
+};

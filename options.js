@@ -8,7 +8,9 @@ import { recordHistory } from "./configurations.js";
 import {  redrawStaves, flattenArray } from "./staves/staveDrawing.js";
 import { staveState } from "./staves/staveState.js";
 
-let stavesArray = staveState.stavesArray;
+function getCurrentStavesArray() {
+  return Array.isArray(staveState.stavesArray) ? staveState.stavesArray : [];
+}
 
 const buttonContainer = document.getElementById("button-container");
 const createButton = document.getElementById("Add Clef");
@@ -26,10 +28,10 @@ function resetPageState() {
 }
 
 function addNewLine() {
-  stavesArray = staveState.stavesArray;
-  if (stavesArray.length !== 0) lineObj.line++;
+  const currentStavesArray = getCurrentStavesArray();
+  if (currentStavesArray.length !== 0) lineObj.line++;
   const newArray = [];
-  stavesArray.push(newArray);
+  currentStavesArray.push(newArray);
   createNewButton(false, true);
   createNewButton();
   recordHistory();
@@ -82,8 +84,8 @@ function updateYLevelCounter(lessOrMore) {
 }
 
 // Add event listener for creating new buttons
-createButton.addEventListener("click", createNewButton);
-addNewLineButton.addEventListener("click", addNewLine);
+if (createButton) createButton.addEventListener("click", createNewButton);
+if (addNewLineButton) addNewLineButton.addEventListener("click", addNewLine);
 
 function refactorButtonUpdate(yLevelToRemove) {
     let buttonYLevel = 1;
@@ -145,7 +147,8 @@ function transformToSelect2() {
 
 
 // Add the initial event listener to the button
-document.getElementById('Add/Change Key Signature').addEventListener('click', transformToSelect2);
+const keySignatureButton = document.getElementById('Add/Change Key Signature');
+if (keySignatureButton) keySignatureButton.addEventListener('click', transformToSelect2);
 
 
 function recreateButton() {
@@ -193,7 +196,8 @@ function transformToSelect() {
 
 
 // Add the initial event listener to the button
-document.getElementById('Add/Change Clef').addEventListener('click', transformToSelect);
+const clefButton = document.getElementById('Add/Change Clef');
+if (clefButton) clefButton.addEventListener('click', transformToSelect);
 
 function recreateButton2() {
   // Create a new button element
@@ -231,7 +235,8 @@ function transformToInput() {
 
 
 // Add the initial event listener to the button
-document.getElementById('Add/Change Time Signature').addEventListener('click', transformToInput);
+const timeSignatureButton = document.getElementById('Add/Change Time Signature');
+if (timeSignatureButton) timeSignatureButton.addEventListener('click', transformToInput);
 
 function recreateButton4() {
   // Create the main "Add/Change Notes" button
@@ -405,8 +410,7 @@ function transformToInput2() {
       const inputIndex = inputs.indexOf(this);
 
       // Use the index to handle notes uniquely
-      const sortedArray = flattenArray(stavesArray).sort((a, b) => a.getY() - b.getY() || a.getX() - b.getX());
-      const selectedStavesArray = Array.from(selectedStaves);
+  const sortedArray = flattenArray(getCurrentStavesArray()).sort((a, b) => a.getY() - b.getY() || a.getX() - b.getX());
 
       notesArray.forEach(noteAndId => {
         if 
@@ -517,7 +521,7 @@ function transformToInput2() {
   // Add input fields based on filtered data
   let filteredArray;
   if (selectedStaves.size === 0) {
-    const sortedArray = flattenArray(stavesArray).sort((a, b) => a.getY() - b.getY() || a.getX() - b.getX());
+    const sortedArray = flattenArray(getCurrentStavesArray()).sort((a, b) => a.getY() - b.getY() || a.getX() - b.getX());
     filteredArray = notesArray.filter(noteAndId => noteAndId.staveId === sortedArray[staveVoiceCounter].attrs.id);
   } else {
     const selectedStavesArray = Array.from(selectedStaves);
@@ -540,7 +544,7 @@ function transformToInput2() {
       flag = true;
     } else if (!flag) {
       staveVoiceCounter++;
-      if (staveVoiceCounter === flattenArray(stavesArray).length) staveVoiceCounter = 0;
+      if (staveVoiceCounter === flattenArray(getCurrentStavesArray()).length) staveVoiceCounter = 0;
     }
 
     // Replace the input container with a new button
@@ -567,7 +571,8 @@ function transformToInput2() {
 }
 
 // Add the initial event listener to the button
-document.getElementById('Add/Change Notes').addEventListener('click', transformToInput2);
+const notesButton = document.getElementById('Add/Change Notes');
+if (notesButton) notesButton.addEventListener('click', transformToInput2);
 
 
 

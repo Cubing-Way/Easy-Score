@@ -25,6 +25,10 @@ function createEmptyStave(xPosition, yPosition) {
 
   // Create new stave
   const newStave = new Stave(xPosition, yPosition, width);
+  newStave.attrs = newStave.attrs || {};
+  if (!newStave.attrs.id) {
+    newStave.attrs.id = `stave-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  }
 
   // Push stave into the stavesArray
   stavesArray[lineObj.line].push(newStave);
@@ -247,7 +251,11 @@ function redrawStaves() {
   const context = staveState.context;
   const stavesArray = staveState.stavesArray;
 
-  if (!context || !context.svg) return;
+  // Safety check to ensure context and stavesArray are valid
+  if (!context || !Array.isArray(stavesArray)) {
+    console.warn("Invalid context or stavesArray:", { context, stavesArray });
+    return;
+  }
 
   context.clear();
   context.svg.innerHTML = "";

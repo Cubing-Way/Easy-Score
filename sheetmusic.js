@@ -5,6 +5,8 @@ import { staveVoiceCounter } from "./options.js";
 import { noteHeadFlag, addNoteHeads } from "./configurations.js";
 import { staveState } from './staves/staveState.js';
 
+let stavesArray = staveState.stavesArray;
+
 function getCurrentStavesArray() {
     return staveState.stavesArray || [];
 }

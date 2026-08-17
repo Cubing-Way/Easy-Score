@@ -12,4 +12,6 @@ const staveState = {
     scale: 1.15,
 };
 
-export { staveState };
+const projectState = { pagesArray: [] };
+
+export { staveState, projectState };

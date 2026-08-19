@@ -3,7 +3,7 @@ import Vex from "vexflow";
 import { redrawStaves } from "./staves/staveDrawing.js";
 import { scale } from "./staves/staveDrawing.js"; 
 const { Stave, StaveNote, Beam, Formatter, Accidental, Dot, StaveTie, Curve, Annotation } = Vex;
-import { notesArray, voices, addVoice, addVoiceHandler, setNotesArray} from "./sheetmusic.js";
+import { notesArray, voices, addVoice, addVoiceHandler, setNotesArray, addTestNoteToFirstStave} from "./sheetmusic.js";
 import { lineObj } from "./options.js";
 import { staveState, projectState } from './staves/staveState.js';
 import { initializeDefaultPage } from "./staves/page.js";
@@ -162,9 +162,9 @@ function saveState() {
   savedState.pages = projectState.pagesArray.map(page => ({
     output: page.output,
     title: page.title,
-    stavesArray: serializeStaves(page.stavesArray)
+    stavesArray: serializeStaves(page.stavesArray),
+    notesArray: page.notesArray
   }));
-  console.log(savedState.pages)
 }
 
 function restoreStavesFromSafeCopy(safeCopy, context) {
@@ -228,6 +228,7 @@ async function restorePagesFromSave(pages = []) {
     const createdPage = newPage(page.output, page.title);
     const restoredStaves = restorePageStavesFromSafeCopy(page, createdPage.context);
     createdPage.stavesArray = restoredStaves;
+    createdPage.notesArray = page.notesArray;
 
     // Ensure the page in projectState.pagesArray has the restored staves
     const storedPage = projectState.pagesArray[projectState.pagesArray.length - 1];
@@ -255,10 +256,6 @@ async function restoreState(save, setAsLast = true) {
     staveState.stavesArray = firstPage.stavesArray;
   }
 
-  if (save.scale !== undefined && save.scale !== null) {
-    setScale(Number(save.scale));
-  }
-
   lineObj.line = -1;
   restoredStaves.forEach(() => lineObj.line++);
   if (lineObj.line === -1) lineObj.line = 0;
@@ -267,7 +264,7 @@ async function restoreState(save, setAsLast = true) {
 
     staveState.context = page.context;
     staveState.stavesArray = page.stavesArray;
-    console.log(page.stavesArray)
+    staveState.notesArray = page.notesArray;
     redrawStaves();
   });
 
@@ -388,7 +385,9 @@ function loadAllCopies() {
   }
 
   // No saved project was selected/found
-  initializeDefaultPage();
+// No saved project was selected/found
+initializeDefaultPage();
+addTestNoteToFirstStave();
 }
 
 function saveAsFunction() {
@@ -417,7 +416,7 @@ function deleteCurrCopy()  {
   deleteCopy(saveBtn); // reuse existing deleteCopy 'logic
   lastCopy = null; // clear reference after deletions
   document.getElementById("main").innerHTML = "";
-  initializeDefaultPage();
+addTestNoteToFirstStave();
 };
 
 document.getElementById("redo").addEventListener("click", redo);
@@ -710,6 +709,7 @@ document.getElementById("clear").addEventListener("click", clearCanvas);
         lastVcStave = vc.stave;
     });
   }
+
 
   document.getElementById('Add NoteHeads').addEventListener('click', addNoteHeads);
 

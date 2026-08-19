@@ -2,6 +2,7 @@ import Vex from "vexflow";
 import { staveState } from "./staveState.js";
 import { addClickRectForStave } from "../selector.js";
 import { lineObj } from "../options.js";
+import { addVoice, notesArray } from "../sheetmusic.js";
 const { Stave, StaveNote, Beam, Formatter, Renderer, StaveConnector } = Vex;
 
 let scale = 1.15;
@@ -250,6 +251,7 @@ function createConnector(stave1, stave2, type) {
 function redrawStaves() {
   const context = staveState.context;
   const stavesArray = staveState.stavesArray;
+  const notesArray = staveState.notesArray;
 
   // Safety check to ensure context and stavesArray are valid
   if (!context || !Array.isArray(stavesArray)) {
@@ -264,6 +266,15 @@ function redrawStaves() {
     staveLine.forEach((stave) => {
       stave.setContext(context).draw();
       addClickRectForStave(stave);
+notesArray.forEach(stvNts => {
+    console.log("NOTE ID:", stvNts.staveId);
+    console.log("STAVE ID:", stave.attrs.id);
+
+    if (stvNts.staveId === stave.attrs.id) {
+        console.log("MATCH!");
+        addVoice(stave, stvNts);
+    }
+});
     });
   });
 

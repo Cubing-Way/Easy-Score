@@ -52,8 +52,9 @@ function newRender(output, title) {
   renderer.resize(900, 1100);
   const context = renderer.getContext();
   const stavesArray = [];
+  const notesArray = [];
 
-  return { div, titleElement, renderer, context, stavesArray, output, title };
+  return { div, titleElement, renderer, context, stavesArray, output, title, notesArray };
 }
 
 function createNewPage() {
@@ -74,22 +75,25 @@ function createNewPage() {
 
 function setActiveRender(renderInfo) {
   div = renderInfo.div;
-  title = renderInfo.title;
+  title = renderInfo.titleElement;
   renderer = renderInfo.renderer;
   context = renderInfo.context;
+  stavesArray = renderInfo.stavesArray;
+
   setContext(renderInfo.context);
 
-  staveState.div = div;
-  staveState.title = title;
-  staveState.renderer = renderer;
-  staveState.context = context;
+  staveState.div = renderInfo.div;
+  staveState.title = renderInfo.titleElement;
+  staveState.renderer = renderInfo.renderer;
+  staveState.context = renderInfo.context;
   staveState.stavesArray = renderInfo.stavesArray;
-  setStavesArray(renderInfo.stavesArray);
+  staveState.notesArray = renderInfo.notesArray;
 
-  stavesArray = renderInfo.stavesArray;
+  setStavesArray(renderInfo.stavesArray);
 }
 
 function newPage(output, title, initialStavesArray = []) {
+  
   const newDiv = document.createElement("div");
 
   newDiv.className = "a4-paper";
@@ -106,12 +110,7 @@ function newPage(output, title, initialStavesArray = []) {
     nextRender.stavesArray = initialStavesArray;
   }
 
-  projectState.pagesArray.push({
-    output,
-    title,
-    stavesArray: nextRender.stavesArray,
-    context: nextRender.context
-  });
+  projectState.pagesArray.push(nextRender);
 
   return nextRender;
 }

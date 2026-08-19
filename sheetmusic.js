@@ -1,10 +1,13 @@
+//sheetmusic.js
+
 import Vex from "vexflow";
 import { flattenArray, redrawStaves, recalculateStaveWidths } from "./staves/staveDrawing.js";
 import { selectedStaves } from "./selector.js";
 import { staveVoiceCounter } from "./options.js";
 import { noteHeadFlag, addNoteHeads } from "./configurations.js";
-import { staveState } from './staves/staveState.js';
+import { staveState, projectState } from './staves/staveState.js';
 
+let context = staveState.context;
 let stavesArray = staveState.stavesArray;
 
 function getCurrentStavesArray() {
@@ -92,7 +95,7 @@ function addKeySigHandler(key) {
     redrawStaves();
 }
 
-let notesArray = [];
+let notesArray = staveState.notesArray;
 let voices = [];
 
 function setNotesArray(newArray) {
@@ -100,6 +103,7 @@ function setNotesArray(newArray) {
 }
 
 function addVoice(stave, staveAndNotes) {
+    context = staveState.context;
     const notes = staveAndNotes.notes;
     const beamIndices = staveAndNotes.beamIndices;
     const counter = staveAndNotes.counter;
@@ -244,6 +248,47 @@ function addVoiceHandler(notes, addOrChange, counter, beamIndices, tieOrSlurIndi
     redrawStaves();
 }
 
+function addTestNoteToFirstStave() {
+    const sortedArray = flattenArray(getCurrentStavesArray()).sort((a, b) => {
+        if (a.getY() === b.getY()) {
+            return a.getX() - b.getX();
+        }
+        return a.getY() - b.getY();
+    });
+
+    if (sortedArray.length === 0) {
+        console.log("No staves available");
+        return;
+    }
+
+    const firstStave = sortedArray[0];
+
+    const notes = [
+        {
+            letter: "C",
+            accidental: "",
+            octave: "4",
+            duration: "4",
+            isDotted: false
+        }
+    ];
+
+    const beamIndices = [];
+    const tieOrSlurIndices = [];
+
+staveState.notesArray.push({
+    staveId: firstStave.attrs.id,
+    notes,
+    counter: 0,
+    beamIndices,
+    tieOrSlurIndices
+});
+
+    redrawStaves();
+}
+
+
+
 
 export { 
     addNewClef, 
@@ -256,5 +301,6 @@ export {
     addVoiceHandler,
     notesArray,
     voices,
-    setNotesArray
+    setNotesArray,
+    addTestNoteToFirstStave
 };

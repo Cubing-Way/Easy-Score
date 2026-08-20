@@ -2,8 +2,7 @@
 
 import { addNewLine, resetPageState } from "../options.js";
 import { staveState, projectState } from "./staveState.js";
-import { setStavesArray } from "./staveController.js";
-import { saveState } from "../configurations.js";
+import { setStavesArray, setScale } from "./staveController.js";
 import Vex from "vexflow"
 const { Stave, StaveNote, Beam, Formatter, Renderer, StaveConnector } = Vex;
 
@@ -19,10 +18,10 @@ let output;
 let title2;
 let defaultRender = null;
 
-/* Chat help me do this but working
-if there was a saved projected selecet
-initiatlizedefaultpage()
-else nothing */
+projectState.pagesArray.forEach(() => {
+  outputCounter++;
+  titleCounter++;
+});
 
 function initializeDefaultPage() {
   if (defaultRender) return defaultRender;
@@ -54,7 +53,17 @@ function newRender(output, title) {
   const stavesArray = [];
   const notesArray = [];
 
-  return { div, titleElement, renderer, context, stavesArray, output, title, notesArray };
+
+  return { 
+    div, 
+    titleElement, 
+    renderer, 
+    context, 
+    stavesArray, 
+    output, 
+    title,
+    notesArray 
+  };
 }
 
 function createNewPage() {
@@ -64,12 +73,14 @@ function createNewPage() {
   resetPageState();
   setActiveRender(newPgRender);
   addNewLine();
+    setScale(1.15);
 
   staveState.div = newPgRender.div;
   staveState.title = newPgRender.title;
   staveState.renderer = newPgRender.renderer;
   staveState.context = newPgRender.context;
   staveState.stavesArray = newPgRender.stavesArray;
+  
   return newPgRender;
 }
 

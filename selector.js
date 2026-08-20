@@ -126,10 +126,10 @@ function onMouseUp() {
     if (!isDragging || !context || !context.svg) return;
 
     isDragging = false;
-
+/*
     if (selectionRect) context.svg.removeChild(selectionRect);
     selectionRect = null;
-
+*/
     if (!clickedStaves && !outputFlag) deselectAllStaves();
 }
 

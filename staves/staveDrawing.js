@@ -3,6 +3,7 @@ import { staveState } from "./staveState.js";
 import { addClickRectForStave } from "../selector.js";
 import { lineObj } from "../options.js";
 import { addVoice, notesArray } from "../sheetmusic.js";
+import { saveState } from "../configurations.js";
 const { Stave, StaveNote, Beam, Formatter, Renderer, StaveConnector } = Vex;
 
 let scale = 1.15;
@@ -12,7 +13,6 @@ let lastStave = null;
 
 let firstStavesByYPosition = staveState.firstStavesByYPosition;
 let lastStavesByYPosition = staveState.lastStavesByYPosition;
-let stavesArray = staveState.stavesArray;
 
 // Function to create an empty stave
 function createEmptyStave(xPosition, yPosition) {
@@ -20,8 +20,8 @@ function createEmptyStave(xPosition, yPosition) {
   const currentContext = getCurrentContext();
 
   if (lineObj.line < 0) lineObj.line = 0;
-  if (!stavesArray[lineObj.line]) {
-    stavesArray[lineObj.line] = [];
+  if (!getCurrentStavesArray()[lineObj.line]) {
+    getCurrentStavesArray()[lineObj.line] = [];
   }
 
   // Create new stave
@@ -32,7 +32,7 @@ function createEmptyStave(xPosition, yPosition) {
   }
 
   // Push stave into the stavesArray
-  stavesArray[lineObj.line].push(newStave);
+  getCurrentStavesArray()[lineObj.line].push(newStave);
 
   // Initialize firstStavesByYPosition if not already set
   if (!staveState.firstStavesByYPosition[yPosition]) {
@@ -43,7 +43,7 @@ function createEmptyStave(xPosition, yPosition) {
   lastStavesByYPosition[yPosition] = newStave;
 
   // Draw staveconnector lines
-  const existingStave = stavesArray[lineObj.line].find((stave) => stave.getX() === xPosition);
+  const existingStave = getCurrentStavesArray()[lineObj.line].find((stave) => stave.getX() === xPosition);
   if (existingStave) createConnector(existingStave, newStave, StaveConnector.type.SINGLE);
 
   // Draw the new stave
@@ -105,10 +105,9 @@ function resetFirstStavesByYPosition() {
 
 function recalculateStaveWidths(yPosition) {
   const context = staveState.context;
-  const stavesArray = staveState.stavesArray;
   const width = staveState.width || 770;
   const ClefKeyTimeWidthsArray = [];
-  const stavesAtYPosition = flattenArray(stavesArray).filter(stave => stave.getY() === yPosition);
+  const stavesAtYPosition = flattenArray(getCurrentStavesArray()).filter(stave => stave.getY() === yPosition);
 
   if (stavesAtYPosition.length === 0) {
     console.log(`No staves left at Y-position: ${yPosition}`);
@@ -266,15 +265,9 @@ function redrawStaves() {
     staveLine.forEach((stave) => {
       stave.setContext(context).draw();
       addClickRectForStave(stave);
-notesArray.forEach(stvNts => {
-    console.log("NOTE ID:", stvNts.staveId);
-    console.log("STAVE ID:", stave.attrs.id);
-
-    if (stvNts.staveId === stave.attrs.id) {
-        console.log("MATCH!");
-        addVoice(stave, stvNts);
-    }
-});
+      notesArray.forEach(stvNts => {
+          if (stvNts.staveId === stave.attrs.id) addVoice(stave, stvNts);
+      });
     });
   });
 
@@ -284,7 +277,7 @@ notesArray.forEach(stvNts => {
 }
 
 function syncStavesArray() {
-  stavesArray = getCurrentStavesArray();
+  let stavesArray = getCurrentStavesArray();
   return stavesArray;
 }
 

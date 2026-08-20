@@ -44,7 +44,7 @@ function updateTransform(newScale = scale) {
 
 function setScale(scaleParam) {
   scale = scaleParam;
-  width = 770 / scale;
+  width = 810 / scale;
   staveState.width = width;
   staveState.scale = scale;
 

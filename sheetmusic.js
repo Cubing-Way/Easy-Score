@@ -216,14 +216,14 @@ function addVoiceHandler(notes, addOrChange, counter, beamIndices, tieOrSlurIndi
                 });
             }
         } else {
-            notesArray.push({staveId : stave.attrs.id, notes, counter, beamIndices, tieOrSlurIndices});
+            staveState.notesArray.push({staveId : stave.attrs.id, notes, counter, beamIndices, tieOrSlurIndices});
         }
         flag = true;
     });
 
     //Add voice to current stave by x and y (if no staves are selected)
     if (selectedStaves.size === 0 && !flag) {
-        const sortedArray = flattenArray(stavesArray).sort((a, b) => {
+        const sortedArray = flattenArray(getCurrentStavesArray()).sort((a, b) => {
             if (a.getY() === b.getY()) {
                 return a.getX() - b.getX();
             } else {
@@ -241,54 +241,12 @@ function addVoiceHandler(notes, addOrChange, counter, beamIndices, tieOrSlurIndi
                 });
             }
         } else {
-            notesArray.push({staveId : sortedArray[staveVoiceCounter].attrs.id, notes, counter, beamIndices, tieOrSlurIndices});
+            staveState.notesArray.push({staveId : sortedArray[staveVoiceCounter].attrs.id, notes, counter, beamIndices, tieOrSlurIndices});
         }
     }
     
     redrawStaves();
 }
-
-function addTestNoteToFirstStave() {
-    const sortedArray = flattenArray(getCurrentStavesArray()).sort((a, b) => {
-        if (a.getY() === b.getY()) {
-            return a.getX() - b.getX();
-        }
-        return a.getY() - b.getY();
-    });
-
-    if (sortedArray.length === 0) {
-        console.log("No staves available");
-        return;
-    }
-
-    const firstStave = sortedArray[0];
-
-    const notes = [
-        {
-            letter: "C",
-            accidental: "",
-            octave: "4",
-            duration: "4",
-            isDotted: false
-        }
-    ];
-
-    const beamIndices = [];
-    const tieOrSlurIndices = [];
-
-staveState.notesArray.push({
-    staveId: firstStave.attrs.id,
-    notes,
-    counter: 0,
-    beamIndices,
-    tieOrSlurIndices
-});
-
-    redrawStaves();
-}
-
-
-
 
 export { 
     addNewClef, 
@@ -302,5 +260,4 @@ export {
     notesArray,
     voices,
     setNotesArray,
-    addTestNoteToFirstStave
 };

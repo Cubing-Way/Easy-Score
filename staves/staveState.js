@@ -14,7 +14,7 @@ const staveState = {
     pageRenderMap: {},
     activePageId: null,
 
-    width: 770,
+    width: 800,
     scale: 1.15,
 };
 

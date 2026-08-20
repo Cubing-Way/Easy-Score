@@ -3,7 +3,7 @@ import Vex from "vexflow";
 import { redrawStaves } from "./staves/staveDrawing.js";
 import { scale } from "./staves/staveDrawing.js"; 
 const { Stave, StaveNote, Beam, Formatter, Accidental, Dot, StaveTie, Curve, Annotation } = Vex;
-import { notesArray, voices, addVoice, addVoiceHandler, setNotesArray, addTestNoteToFirstStave} from "./sheetmusic.js";
+import { notesArray, voices, setNotesArray} from "./sheetmusic.js";
 import { lineObj } from "./options.js";
 import { staveState, projectState } from './staves/staveState.js';
 import { initializeDefaultPage } from "./staves/page.js";
@@ -19,7 +19,6 @@ function persistLastProjectId(projectId) {
     localStorage.setItem("lastSelectedProjectId", projectId);
   } else {
     localStorage.removeItem("lastSelectedProjectId");
-
   }
 }
 
@@ -385,9 +384,7 @@ function loadAllCopies() {
   }
 
   // No saved project was selected/found
-// No saved project was selected/found
-initializeDefaultPage();
-addTestNoteToFirstStave();
+  initializeDefaultPage();
 }
 
 function saveAsFunction() {
@@ -416,7 +413,6 @@ function deleteCurrCopy()  {
   deleteCopy(saveBtn); // reuse existing deleteCopy 'logic
   lastCopy = null; // clear reference after deletions
   document.getElementById("main").innerHTML = "";
-addTestNoteToFirstStave();
 };
 
 document.getElementById("redo").addEventListener("click", redo);

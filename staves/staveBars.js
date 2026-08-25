@@ -1,10 +1,11 @@
 import { getCurrentStavesArray, syncStavesArray } from "./staveDrawing";
 import { staveState } from "./staveState";
 import { clickCounts, lineObj} from "../options";
-import { flattenArray, createEmptyStave, width, recalculateStaveWidths, redrawStaves} from "./staveDrawing";
+import { flattenArray, createEmptyStave, recalculateStaveWidths, redrawStaves} from "./staveDrawing";
 import { addKeySignature, addTimeSignature, addNewClef } from "../sheetmusic";
 import { recordHistory } from "../configurations";
 
+const width = staveState.width;
 let stavesArray = staveState.stavesArray;
 let capturedYLevel = null;
 let capturedYLevels = [];

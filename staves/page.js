@@ -3,9 +3,9 @@
 import { addNewLine, resetPageState } from "../options.js";
 import { staveState, projectState } from "./staveState.js";
 import { setStavesArray, setScale } from "./staveController.js";
-import Vex from "vexflow"
+import { saveState } from "../configurations.js";
+import Vex from "vexflow";
 const { Stave, StaveNote, Beam, Formatter, Renderer, StaveConnector } = Vex;
-
 
 let outputCounter = 0;
 let titleCounter = 0;
@@ -14,14 +14,35 @@ let title;
 let renderer;
 let context;
 let stavesArray;
-let output;
-let title2;
 let defaultRender = null;
 
-projectState.pagesArray.forEach(() => {
-  outputCounter++;
-  titleCounter++;
-});
+function updateCounters() {
+  projectState.pagesArray.forEach(() => {
+    outputCounter++;
+    titleCounter++;
+  });
+}
+
+function getCurrentPage() {
+  const pages = document.querySelectorAll('.a4-paper');
+  const viewportCenter = window.innerHeight / 2;
+
+  let closestPage = null;
+  let closestDistance = Infinity;
+
+  pages.forEach(page => {
+    const rect = page.getBoundingClientRect();
+    const pageCenter = rect.top + rect.height / 2;
+    const distance = Math.abs(pageCenter - viewportCenter);
+
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestPage = page;
+    }
+  });
+
+  return closestPage;
+}
 
 function initializeDefaultPage() {
   if (defaultRender) return defaultRender;
@@ -47,22 +68,29 @@ function initializeDefaultPage() {
 function newRender(output, title) {
   const div = document.getElementById(output);
   const titleElement = document.getElementById(title);
-  const renderer = new Renderer(div, Renderer.Backends.SVG);
+
+  const renderer = new Renderer(
+    div,
+    Renderer.Backends.SVG
+  );
+
   renderer.resize(900, 1100);
+
   const context = renderer.getContext();
+
   const stavesArray = [];
   const notesArray = [];
 
-
-  return { 
-    div, 
-    titleElement, 
-    renderer, 
-    context, 
-    stavesArray, 
-    output, 
+  return {
+    div,
+    titleElement,
+    renderer,
+    context,
+    stavesArray,
+    output,
     title,
-    notesArray 
+    notesArray,
+    currentScale: 1
   };
 }
 
@@ -73,14 +101,18 @@ function createNewPage() {
   resetPageState();
   setActiveRender(newPgRender);
   addNewLine();
-    setScale(1.15);
+  setScale(staveState.scale);
+
+  document.getElementById("scaleSlider").value = Math.round(Number(staveState.scale) * 100);
+  document.getElementById("scaleValue").textContent = Math.round(Number(staveState.scale) * 100) + "%";
 
   staveState.div = newPgRender.div;
   staveState.title = newPgRender.title;
   staveState.renderer = newPgRender.renderer;
   staveState.context = newPgRender.context;
   staveState.stavesArray = newPgRender.stavesArray;
-  
+  window.dispatchEvent(new Event('scroll'));
+
   return newPgRender;
 }
 
@@ -104,10 +136,11 @@ function setActiveRender(renderInfo) {
 }
 
 function newPage(output, title, initialStavesArray = []) {
-  
   const newDiv = document.createElement("div");
 
   newDiv.className = "a4-paper";
+  newDiv.id = `page-${projectState.pagesArray.length}`;
+
   newDiv.innerHTML = `
     <h1 id="${title}" class="content page-title">New page</h1>
     <div id="${output}" class="content"></div>
@@ -126,7 +159,6 @@ function newPage(output, title, initialStavesArray = []) {
   return nextRender;
 }
 
-
 document.getElementById("delete page").addEventListener("click", () => {
   const mainContainer = document.getElementById("main");
   const pages = mainContainer.querySelectorAll(".a4-paper, .page");
@@ -142,7 +174,7 @@ document.getElementById("delete page").addEventListener("click", () => {
   projectState.pagesArray.pop();
   saveState();
 
-  alert("Last page deleted!");
+  window.dispatchEvent(new Event('scroll'));
 });
 
 
@@ -171,5 +203,8 @@ export {
   setContext, 
   newPage, 
   initializeDefaultPage, 
-  setActiveRender
+  setActiveRender,
+  getCurrentPage,
+  updateCounters,
+  createNewPage
 };

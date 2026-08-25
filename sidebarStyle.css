@@ -34,6 +34,15 @@ body {
 
 }
 
+#low-left-sidebar {
+  position: fixed;
+  z-index: 100;
+  padding: 5px 10px;
+  background: rgba(255, 255, 255, 0.8);
+  font-size: 14px;
+  left: 10px;
+  bottom: 10px;
+}
 
 
 /* Container for each save row */
@@ -243,14 +252,13 @@ body {
 
 
 /* Sidebar styles */
-.sidebar {
+#sidebar {
   margin-top: 30px;
   height: 100%;
-  width: 0;
   position: fixed;
   top: 0;
   right: 0; /* Align sidebar to the right */
-  background-color: #f0f0f0; /* Change sidebar background to light gray */
+
   color: black;  /* Change text color to black */
   overflow-x: hidden;
   transition: 0.3s;
@@ -259,13 +267,18 @@ body {
 }
 
 
+.sidebar button {
+  gap: 10px; /* Add spacing between buttons */
+  margin: 10px;
+}
+
+
 #sidebar2 {
   height: 100%;
-  width: 0;
+  width: 250px;
   position: fixed;
   top: 0;
   left: 0; /* Align sidebar to the right */
-  background-color: #f0f0f0; /* Change sidebar background to light gray */
   color: black;  /* Change text color to black */
   overflow-x: hidden;
   transition: 0.3s;
@@ -338,8 +351,7 @@ body {
   display: flex;
   flex-direction: column; /* Arrange buttons vertically */
   align-items: flex-start; /* Align buttons to the left */
-  gap: 10px; /* Add spacing between buttons */
-  margin: 10px;
+
 }
 
 #button-container {
@@ -389,8 +401,8 @@ button {
 
 #output svg {
   font-family: 'Bravura';
-}
 
+}
 
 
 

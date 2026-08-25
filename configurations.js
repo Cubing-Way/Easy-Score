@@ -1,12 +1,12 @@
 import { setScale, setOffSetTitleY, setStavesArray } from "./staves/staveController.js";
 import Vex from "vexflow";
 import { redrawStaves } from "./staves/staveDrawing.js";
-import { scale } from "./staves/staveDrawing.js"; 
 const { Stave, StaveNote, Beam, Formatter, Accidental, Dot, StaveTie, Curve, Annotation } = Vex;
 import { notesArray, voices, setNotesArray} from "./sheetmusic.js";
 import { lineObj } from "./options.js";
 import { staveState, projectState } from './staves/staveState.js';
-import { initializeDefaultPage } from "./staves/page.js";
+import { createNewPage, initializeDefaultPage, updateCounters } from "./staves/page.js";
+import { setActiveRender } from "./staves/page.js";
 
 const savedState = {};
 let lastCopy;
@@ -23,25 +23,25 @@ function persistLastProjectId(projectId) {
 }
 
 function clearCanvas() {
-  restoreState({
-    "staves": [[{
-                "x": 20,
-                "y": 0,
-                "width": 670.2999877929688,
-                "modifiers": [{"type": "KeySignature", "value": "A"},{"type": "TimeSignature", "value": "4/4"},
-                {"type": "Clef","value": "treble"}],
-                "id": "auto1001" },
-                {
-                "x": 20,
-                "y": 100,
-                "width": 670.2999877929688,
-                "modifiers": [{"type": "KeySignature","value": "A"},
-                {"type": "TimeSignature","value": "4/4"},
-                {"type": "Clef","value": "bass"}],
-                "id": "auto1017"}]],
-    "notes": []
-  });
-  setScale(1.15)
+  //Reset staveState
+  staveState.div = null;
+  staveState.title = null;
+  staveState.renderer = null;
+  staveState.context = null
+  staveState.stavesArray = [];
+  staveState.notesArray = [];
+  staveState.firstStavesByYPosition = {};
+  staveState.lastStavesByYPosition = {};
+  staveState.pageRenderMap = {};
+  staveState.activePageId = null;
+  staveState.width = 800;
+  staveState.scale = 1.15
+
+  //Reset projectState
+  projectState.pagesArray = [];
+
+  //Reset HTML
+  document.getElementById("main").innerHTML = "";
   recordHistory();
 }
 
@@ -145,6 +145,9 @@ function redo() {
 
 function newCopy() {
   clearCanvas();
+  createNewPage();
+  document.getElementById("scaleSlider").value = Math.round(Number(staveState.scale) * 100);
+  document.getElementById("scaleValue").textContent = Math.round(Number(staveState.scale) * 100) + "%";
   lastCopy = null;
   persistLastProjectId(null);
 }
@@ -239,49 +242,68 @@ async function restorePagesFromSave(pages = []) {
 }
 
 async function restoreState(save, setAsLast = true) {
+  if (!save) return;
 
   const activeContext = staveState.context;
-  const restoredStaves = restoreStavesFromSafeCopy(save, activeContext);
+
+  const restoredStaves = restoreStavesFromSafeCopy(
+      save,
+      activeContext
+  );
 
   setStavesArray(restoredStaves);
   setNotesArray(save.notes || []);
-  document.getElementById("main").innerHTML = "";
-  await restorePagesFromSave(save.pages);
 
-  // Set context to first page before calling setScale
-  if (projectState.pagesArray.length > 0) {
-    const firstPage = projectState.pagesArray[0];
-    staveState.context = firstPage.context;
-    staveState.stavesArray = firstPage.stavesArray;
-  }
+  document.getElementById("main").innerHTML = "";
+
+  // Remove pages from the previous project
+  projectState.pagesArray.length = 0;
+
+  await restorePagesFromSave(save.pages || []);
+
+  // Project scale
+  const savedScale = Number(save.scale);
+  staveState.scale =
+      Number.isFinite(savedScale) && savedScale > 0
+          ? savedScale
+          : 1.15;
 
   lineObj.line = -1;
-  restoredStaves.forEach(() => lineObj.line++);
-  if (lineObj.line === -1) lineObj.line = 0;
 
-  projectState.pagesArray.forEach(page => {
-
-    staveState.context = page.context;
-    staveState.stavesArray = page.stavesArray;
-    staveState.notesArray = page.notesArray;
-    redrawStaves();
+  restoredStaves.forEach(() => {
+      lineObj.line++;
   });
 
-
-  if (setAsLast) {
-    // Only set lastCopy when we *want* to track this as the active copy
-    if (copyArray.some(c => c.id === save.id)) {
-      lastCopy = copyArray.find(c => c.id === save.id);
-    } else {
-      lastCopy = save;
-    }
-
-    persistLastProjectId(lastCopy?.id || null);
+  if (lineObj.line === -1) {
+      lineObj.line = 0;
   }
 
+  // Render every page using the project's scale
+  for (const page of projectState.pagesArray) {
+    setActiveRender(page);
+    redrawStaves();
+  }
+
+  if (projectState.pagesArray.length === 0) {
+      staveState.context = activeContext;
+      staveState.stavesArray = restoredStaves;
+  }
+
+  if (setAsLast) {
+      if (copyArray.some(c => c.id === save.id)) {
+          lastCopy = copyArray.find(c => c.id === save.id);
+      } else {
+          lastCopy = save;
+      }
+
+      persistLastProjectId(lastCopy?.id || null);
+  }
+  window.dispatchEvent(new Event('scroll'));
+  updateCounters();
+  setScale(staveState.scale);
+  document.getElementById("scaleValue").textContent = Math.round(Number(staveState.scale) * 100) + "%";
+  document.getElementById("scaleSlider").value = Math.round(Number(staveState.scale) * 100);
 }
-
-
 
 function updateCopy() {
   if (lastCopy) {
@@ -385,6 +407,7 @@ function loadAllCopies() {
 
   // No saved project was selected/found
   initializeDefaultPage();
+  window.dispatchEvent(new Event('scroll'));
 }
 
 function saveAsFunction() {
@@ -524,10 +547,19 @@ function recreateButton2() {
     });
   }
 
-
-
 // Add the initial event listener to the button
-document.getElementById('Change Scale').addEventListener('click', transformToInput);
+const scaleSlider = document.getElementById("scaleSlider");
+const scaleValue = document.getElementById("scaleValue");
+
+scaleSlider.addEventListener("input", function () {
+    const percentage = Number(this.value);
+    const newScale = percentage / 100;
+
+    scaleValue.textContent = `${percentage}%`;
+
+    setScale(newScale)
+});
+
 document.getElementById('Change Title').addEventListener('click', transformToInput2);
 document.getElementById("clear").addEventListener("click", clearCanvas);
 

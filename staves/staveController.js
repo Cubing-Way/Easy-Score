@@ -1,27 +1,55 @@
-//stavaManagement.js
+//staveController.js
 
 import Vex from "vexflow";
-import { clickCounts, refactorButtonUpdate, updateYLevelCounter, lineObj, addNewLine} from "../options.js";
-import { selectedStaves, addClickRectForStave } from "../selector.js";
-import { addNewClef, addTimeSignature, addKeySignature, addVoice, notesArray} from "../sheetmusic.js";
-import { noteHeadFlag, addNoteHeads, recordHistory } from "../configurations.js";
+import { addNewLine, setStaveVoiceCounter} from "../options.js";
+import { selectedStaves } from "../selector.js";
 const { Stave, StaveNote, Beam, Formatter, Renderer, StaveConnector } = Vex;
-import { staveState } from "./staveState.js";
+import { staveState, projectState } from "./staveState.js";
+import { getCurrentPage, setActiveRender } from "./page.js";
 import { 
   redrawStaves, 
   flattenArray, 
   recalculateStaveWidths, 
-  resetFirstStavesByYPosition,
-  createEmptyStave,
   getCurrentContext,
-  getCurrentStavesArray,
   syncStavesArray,
 } from "./staveDrawing.js";
 
-let scale = 1.15;
-let width = 770 / scale;
-
 let stavesArray = staveState.stavesArray;
+
+let currentPageIndex = -1;
+
+function updateCurrentPage() {
+  const page = getCurrentPage();
+  if (!page) return;
+
+  const pageIndex = parseInt(page.id.replace('page-', ''), 10);
+
+
+
+  currentPageIndex = pageIndex;
+
+  const render = projectState.pagesArray[pageIndex];
+
+  setActiveRender(render);
+
+  let stvVcCnt = 0;
+
+  setStaveVoiceCounter(0);
+
+  for (const staveNotes of render.notesArray) {
+    if (staveNotes.notes.length > 0) {
+      stvVcCnt++;
+    }
+  }
+
+  setStaveVoiceCounter(stvVcCnt);
+
+  document.getElementById("currentPage").textContent =
+    `${pageIndex + 1}/${projectState.pagesArray.length}`;
+    return page;
+}
+
+window.addEventListener('scroll', updateCurrentPage);
 
 function clearCanvas() {
   syncStavesArray();
@@ -30,36 +58,92 @@ function clearCanvas() {
   addNewLine(true);
 }
 
-let currentScale = 1;
+function updateTransform(newScale, renderInfo = null) {
+  const render = renderInfo || {
+    context: getCurrentContext()
+  };
 
-function updateTransform(newScale = scale) {
-    const currentContext = getCurrentContext();
-    if (!currentContext || !currentContext.svg) return;
+  const currentContext = render.context;
+  const numericScale = Number(newScale);
 
-    const relativeScale = newScale / currentScale;
-    currentContext.scale(relativeScale, relativeScale);
-    currentContext.svg.style.marginTop = scale < 1 ? 10 / newScale + "px" : 0 + "px";
-    currentScale = newScale;
+  if (!currentContext?.svg ||!Number.isFinite(numericScale) || numericScale <= 0) {
+    console.warn("[UPDATE TRANSFORM] Invalid scale:", { newScale, render });
+    return;
+  }
+
+  const previousScale =
+    Number(render.currentScale) || 1;
+
+  const relativeScale =
+    numericScale / previousScale;
+
+  currentContext.scale(relativeScale, relativeScale);
+
+  currentContext.svg.style.transformOrigin = "top left";
+
+  currentContext.svg.style.marginTop =
+    numericScale < 1
+      ? `${10 / numericScale}px`
+      : "0px";
+
+  render.currentScale = numericScale;
 }
 
 function setScale(scaleParam) {
-  scale = scaleParam;
-  width = 810 / scale;
-  staveState.width = width;
-  staveState.scale = scale;
+  const newScale = Number(scaleParam);
 
-  syncStavesArray();
-  flattenArray(stavesArray).forEach(stave => recalculateStaveWidths(stave.getY()));
-  redrawStaves();
+  if (!Number.isFinite(newScale) || newScale <= 0) {
+    console.warn("[SET SCALE] Invalid scale:", scaleParam);
+    return;
+  }
 
-  updateTransform();
+  staveState.scale = newScale;
+  staveState.width = 800 / newScale;
+
+  projectState.pagesArray.forEach((page) => {
+    setActiveRender(page);
+
+    staveState.scale = newScale;
+    staveState.width = 800 / newScale;
+
+    syncStavesArray();
+
+    const staves = flattenArray(page.stavesArray);
+
+    staveState.firstStavesByYPosition = {};
+    staveState.lastStavesByYPosition = {};
+
+    for (const stave of staves) {
+      const y = stave.getY();
+
+      if (!staveState.firstStavesByYPosition[y]) {
+        staveState.firstStavesByYPosition[y] = stave;
+      }
+
+      staveState.lastStavesByYPosition[y] = stave;
+    }
+
+    const yPositions = [
+      ...new Set(staves.map(stave => stave.getY()))
+    ];
+
+    yPositions.forEach(y => {
+      recalculateStaveWidths(y);
+    });
+
+    redrawStaves();
+
+    updateTransform(newScale, page);
+  });
+
+  staveState.scale = newScale;
+  staveState.width = 800 / newScale;
+
 }
 
 function setOffSetTitleY() {
   updateTransform();
 }
-
-setOffSetTitleY();
 
 function setStavesArray(newArray) {
   stavesArray = newArray;
@@ -91,5 +175,5 @@ export {
   setScale,
   setOffSetTitleY,
   clearCanvas,
-  setStavesArray,
+  setStavesArray
 };

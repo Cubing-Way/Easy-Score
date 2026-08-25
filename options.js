@@ -6,7 +6,7 @@ import { addClefHandler, addKeySigHandler, addTimeSigHandler, addVoiceHandler, n
 import { selectedStaves } from "./selector.js";
 import { recordHistory } from "./configurations.js";
 import {  redrawStaves, flattenArray } from "./staves/staveDrawing.js";
-import { staveState } from "./staves/staveState.js";
+import { projectState, staveState } from "./staves/staveState.js";
 
 function getCurrentStavesArray() {
   return Array.isArray(staveState.stavesArray) ? staveState.stavesArray : [];
@@ -40,10 +40,7 @@ function addNewLine() {
 function createNewButton(event, param) {
   if (event) param = false;
   // Check if the maximum number of buttons has been reached
-  if (buttonContainer.children.length - 1 >= 10) {
-      alert("Maximum number of buttons reached!");
-      return; // Stop creating new buttons
-  }
+
 
   updateCapturedYLevels();
   if (capturedYLevels.length > 0) {
@@ -69,8 +66,10 @@ function createNewButton(event, param) {
   });
 
   // Insert the new button above the "Create Button"
+  /*
   buttonContainer.insertBefore(newButton, createButton);
   buttonContainer.appendChild(createButton); // Ensure "Create Button" stays at the bottom
+  */
 }
 
 
@@ -84,7 +83,7 @@ function updateYLevelCounter(lessOrMore) {
 }
 
 // Add event listener for creating new buttons
-if (createButton) createButton.addEventListener("click", createNewButton);
+if (createButton)
 if (addNewLineButton) addNewLineButton.addEventListener("click", addNewLine);
 
 function refactorButtonUpdate(yLevelToRemove) {
@@ -574,6 +573,18 @@ function transformToInput2() {
 const notesButton = document.getElementById('Add/Change Notes');
 if (notesButton) notesButton.addEventListener('click', transformToInput2);
 
+function setStaveVoiceCounter(counter) {
+  staveVoiceCounter = counter;
+}
 
-
-export {clickCounts, refactorButtonUpdate, updateYLevelCounter, lineObj, yLevelCounter, staveVoiceCounter, addNewLine, resetPageState};
+export {
+  clickCounts, 
+  refactorButtonUpdate, 
+  updateYLevelCounter, 
+  lineObj, 
+  yLevelCounter, 
+  staveVoiceCounter, 
+  setStaveVoiceCounter, 
+  addNewLine, 
+  resetPageState
+};

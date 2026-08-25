@@ -6,13 +6,12 @@ import { addVoice, notesArray } from "../sheetmusic.js";
 import { saveState } from "../configurations.js";
 const { Stave, StaveNote, Beam, Formatter, Renderer, StaveConnector } = Vex;
 
-let scale = 1.15;
-let width = 770 / scale;
-
 let lastStave = null;
 
 let firstStavesByYPosition = staveState.firstStavesByYPosition;
 let lastStavesByYPosition = staveState.lastStavesByYPosition;
+
+
 
 // Function to create an empty stave
 function createEmptyStave(xPosition, yPosition) {
@@ -24,8 +23,12 @@ function createEmptyStave(xPosition, yPosition) {
     getCurrentStavesArray()[lineObj.line] = [];
   }
 
-  // Create new stave
-  const newStave = new Stave(xPosition, yPosition, width);
+const newStave = new Stave(
+  xPosition,
+  yPosition,
+  staveState.width
+);
+
   newStave.attrs = newStave.attrs || {};
   if (!newStave.attrs.id) {
     newStave.attrs.id = `stave-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -104,58 +107,79 @@ function resetFirstStavesByYPosition() {
 }
 
 function recalculateStaveWidths(yPosition) {
+
   const context = staveState.context;
-  const width = staveState.width || 770;
-  const ClefKeyTimeWidthsArray = [];
-  const stavesAtYPosition = flattenArray(getCurrentStavesArray()).filter(stave => stave.getY() === yPosition);
+  const width = staveState.width;
+
+  const stavesAtYPosition =
+    flattenArray(getCurrentStavesArray())
+      .filter(stave => stave.getY() === yPosition);
 
   if (stavesAtYPosition.length === 0) {
-    console.log(`No staves left at Y-position: ${yPosition}`);
-    return;
-  }
-
-  if (stavesAtYPosition.length > 30) {
-    console.log(`Too many staves at Y-position: ${yPosition}, skipping width recalculation.`);
+    console.warn("No staves found at Y:", yPosition);
     return;
   }
 
   let clefAndKeySigWidths = 0;
+
   stavesAtYPosition.forEach(stave => {
     let staveClefKeySigWidth = 0;
 
     stave.getModifiers().forEach(modifier => {
       const modifierType = modifier.constructor.name;
-      if (modifierType === 'Clef') {
-        staveClefKeySigWidth += 26.5 + 10;
+
+      if (modifierType === "Clef") {
+        staveClefKeySigWidth += 36.5;
       }
-      if (modifierType === 'KeySignature') {
-        staveClefKeySigWidth += modifier.width + 10;
-      }
-      if (modifierType === 'TimeSignature') {
+
+      if (
+        modifierType === "KeySignature" ||
+        modifierType === "TimeSignature"
+      ) {
         staveClefKeySigWidth += modifier.width + 10;
       }
     });
 
-    ClefKeyTimeWidthsArray.push(staveClefKeySigWidth);
-    clefAndKeySigWidths = Math.max(...ClefKeyTimeWidthsArray);
+    clefAndKeySigWidths =
+      Math.max(
+        clefAndKeySigWidths,
+        staveClefKeySigWidth
+      );
   });
 
+  const staveWidth = (width - clefAndKeySigWidths) / stavesAtYPosition.length;
+
   stavesAtYPosition.forEach((stave, index) => {
-    if (stave === staveState.firstStavesByYPosition[stave.getY()] && stave.getModifiers().find(modifier => modifier.constructor.name === "Clef")) {
-      const newWidth = Math.round((width - clefAndKeySigWidths) / stavesAtYPosition.length);
-      const newX = Math.round(index * newWidth + 20);
-      stave.setX(newX);
-      stave.setWidth(newWidth + clefAndKeySigWidths);
-      addClickRectForStave(stave, context);
+    const isFirst =
+      stave ===
+      staveState.firstStavesByYPosition[stave.getY()];
+
+    const oldGeometry = {
+      x: stave.getX(),
+      y: stave.getY(),
+      width: stave.getWidth()
+    };
+
+    const x = index * staveWidth + 20;
+
+    let newX;
+    let newWidth;
+
+    if (isFirst &&stave.getModifiers().some(modifier => modifier.constructor.name === "Clef")) {
+      newX = Math.round(x);
+      newWidth = Math.round(staveWidth + clefAndKeySigWidths);
     } else {
-      const newWidth = Math.round((width - clefAndKeySigWidths) / stavesAtYPosition.length);
-      const newX = Math.round(index * newWidth + 20);
-      stave.setX(newX + clefAndKeySigWidths);
-      stave.setWidth(newWidth);
-      addClickRectForStave(stave, context);
+      newX = Math.round(x + clefAndKeySigWidths);
+      newWidth = Math.round(staveWidth);
     }
+
+    stave.setX(newX);
+    stave.setWidth(newWidth);
+
+    addClickRectForStave(stave, context);
   });
 }
+
 
 function updateConnectors() {
   const stavesArray = staveState.stavesArray;
@@ -301,6 +325,4 @@ export {
   getCurrentContext,
   getCurrentStavesArray,
   syncStavesArray,
-  scale,
-  width,
 };

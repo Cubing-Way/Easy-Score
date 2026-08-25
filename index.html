@@ -6,6 +6,25 @@
         <title>Customizable Sheet Music</title>
     </head>
     <body>
+      <div id="low-left-sidebar">
+                <div id="currentPage"></div>
+        <div class="scale-control">
+            <label for="scaleSlider">
+                Scale: <span id="scaleValue"></span>
+            </label>
+
+            <input
+                type="range"
+                id="scaleSlider"
+                min="50"
+                max="150"
+                value="100"
+                step="5"
+            >
+        </div>
+
+      </div>
+      
         <div class="menu-bar">
   <div class="menu-item">
     File
@@ -31,6 +50,7 @@
     </div>
   </div>
 </div>
+
 <!-- Save As Modal -->
 <div id="saveAsModal" class="modal">
   <div class="modal-content">
@@ -47,45 +67,32 @@
   </div>
 </div>
 
-
-        <!-- Toggle Button -->
-        <button class="menu-btn" onclick="toggleSidebar()">&#9776</button>
-        <button class="menu-btn2" onclick="toggleSidebar2()">&#9881;</button>
         <div id="sidebar2" class="sidebar">
-            <a href="javascript:void(0)" class="close-btn" onclick="closeSidebar2()">&times;</a>
-            <a href="javascript:void(0)" onclick="toggleOptions()">Configurations</a>
-            <div id="config" class="config-button">
-                <button id="Change Scale">Change Scale</button>
+
+
                 <button id="Add NoteHeads">Add NoteHeads</button>
                 <button id="Change Title">Change Title</button>
                 <button id="clear">Clear</button>
                 <button id="new page">New Page</button>
                 <button id="delete page">Delete Page</button>
-            </div>
+
         </div>
         <!-- Sidebar -->
         <div id="sidebar" class="sidebar">
-        <a href="javascript:void(0)" class="close-btn" onclick="closeSidebar()">&times;</a>
-        <a href="javascript:void(0)" onclick="toggleOptions()">Options</a>
-        <p>Add Bar</p>
-        <div id="button-container">
+
             <button id="Add Clef">Add Clef (Line)</button>
-        </div>
+
         <button id="Add Bar (all)">Add Bar (all)</button> 
         <button id="Remove Bars">Remove Bar(s)</button>
         <button id="Add Line">Add Line</button>
-        <div id="countainer">
+
             <button id="Add/Change Clef">Add/Change Clef</button>
-        </div>
-        <div id="countainer2">
+
             <button id="Add/Change Time Signature">Add/Change Time Signature</button>
-        </div>
-        <div id="countainer3">
+
             <button id="Add/Change Key Signature">Add/Change Key Signature</button>
-        </div>
-        <div id="countainer4">
+
             <button id="Add/Change Notes">Add/Change Voice</button>
-        </div>
         </div>
         <!-- Main Elements-->
         <div id="main"></div>
@@ -96,7 +103,6 @@
         <script type="module" src="./sheetmusic.js"></script>
         <script type="module" src="./configurations.js"></script>
         <script src="./hotbar.js"></script>
-        <script src="./sidebar.js"></script>
         <link rel="stylesheet" href="./sidebarStyle.css">
         <script type="module" src="./staves/page.js"></script>
     </body>

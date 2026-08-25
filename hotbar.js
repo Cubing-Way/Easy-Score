@@ -40,11 +40,6 @@ window.addEventListener("click", e => {
 
 
 document.getElementById("print").addEventListener("click", () => {
-  const container = document.getElementById("main");
-  const output = document.getElementById("output");
-  output.style.left = `52.5%`;
-  container.style.transform = `scale(1) `;
-  
   window.onafterprint = () => container.style.transform = `scale(0.85)`;
   window.print();
 });

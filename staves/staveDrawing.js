@@ -147,7 +147,7 @@ function recalculateStaveWidths(yPosition) {
       );
   });
 
-  const staveWidth = (width - clefAndKeySigWidths) / stavesAtYPosition.length;
+  const staveWidth = Math.round((width - clefAndKeySigWidths) / stavesAtYPosition.length);
 
   stavesAtYPosition.forEach((stave, index) => {
     const isFirst =
@@ -271,34 +271,39 @@ function createConnector(stave1, stave2, type) {
   connector.setContext(staveState.context).draw();
 }
 
-function redrawStaves() {
-  const context = staveState.context;
-  const stavesArray = staveState.stavesArray;
-  const notesArray = staveState.notesArray;
+function redrawStaves({ hideNotesForStaveId = null } = {}) {
+    const context = staveState.context;
+    const stavesArray = staveState.stavesArray;
+    const notesArray = staveState.notesArray;
 
-  // Safety check to ensure context and stavesArray are valid
-  if (!context || !Array.isArray(stavesArray)) {
-    console.warn("Invalid context or stavesArray:", { context, stavesArray });
-    return;
-  }
+    context.clear();
+    context.svg.innerHTML = "";
 
-  context.clear();
-  context.svg.innerHTML = "";
+    stavesArray.forEach((staveLine) => {
+        staveLine.forEach((stave) => {
+            stave.setContext(context).draw();
+            addClickRectForStave(stave);
 
-  stavesArray.forEach((staveLine) => {
-    staveLine.forEach((stave) => {
-      stave.setContext(context).draw();
-      addClickRectForStave(stave);
-      notesArray.forEach(stvNts => {
-          if (stvNts.staveId === stave.attrs.id) addVoice(stave, stvNts);
-      });
+            const staveId = String(stave.attrs.id);
+
+            // Skip normal notes only for the preview stave
+            if (String(hideNotesForStaveId) === staveId) {
+                return;
+            }
+
+            notesArray.forEach(stvNts => {
+                if (String(stvNts.staveId) === staveId) {
+                    addVoice(stave, stvNts);
+                }
+            });
+        });
     });
-  });
 
-  getMaxXStavesByY(flattenArray(stavesArray));
-  getMinxXStavesByY(flattenArray(stavesArray));
-  updateConnectors();
+    getMaxXStavesByY(flattenArray(stavesArray));
+    getMinxXStavesByY(flattenArray(stavesArray));
+    updateConnectors();
 }
+
 
 function syncStavesArray() {
   let stavesArray = getCurrentStavesArray();

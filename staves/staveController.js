@@ -24,8 +24,6 @@ function updateCurrentPage() {
 
   const pageIndex = parseInt(page.id.replace('page-', ''), 10);
 
-
-
   currentPageIndex = pageIndex;
 
   const render = projectState.pagesArray[pageIndex];
@@ -98,13 +96,13 @@ function setScale(scaleParam) {
   }
 
   staveState.scale = newScale;
-  staveState.width = 800 / newScale;
+  staveState.width = 680 / newScale;
 
   projectState.pagesArray.forEach((page) => {
     setActiveRender(page);
 
     staveState.scale = newScale;
-    staveState.width = 800 / newScale;
+    staveState.width = 680 / newScale;
 
     syncStavesArray();
 
@@ -137,12 +135,8 @@ function setScale(scaleParam) {
   });
 
   staveState.scale = newScale;
-  staveState.width = 800 / newScale;
+  staveState.width = 680 / newScale;
 
-}
-
-function setOffSetTitleY() {
-  updateTransform();
 }
 
 function setStavesArray(newArray) {
@@ -173,7 +167,6 @@ function setStavesArray(newArray) {
 export {
   recalculateStaveWidths,
   setScale,
-  setOffSetTitleY,
   clearCanvas,
   setStavesArray
 };

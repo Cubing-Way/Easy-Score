@@ -14,8 +14,8 @@ const staveState = {
     pageRenderMap: {},
     activePageId: null,
 
-    width: 800,
-    scale: 1.15,
+    width: 680,
+    scale: 1,
 };
 
 const projectState = { pagesArray: [] };

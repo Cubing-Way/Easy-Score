@@ -2,7 +2,7 @@
 
 import { updateCapturedYLevels, capturedYLevels} from "./staves/staveBars.js";
 import { addBar } from "./staves/staveBars.js";
-import { addClefHandler, addKeySigHandler, addTimeSigHandler, addVoiceHandler, notesArray } from "./sheetmusic.js";
+import { addClefHandler, addKeySigHandler, addNewClef, addTimeSigHandler, addVoiceHandler, notesArray } from "./sheetmusic.js";
 import { selectedStaves } from "./selector.js";
 import { recordHistory } from "./configurations.js";
 import {  redrawStaves, flattenArray } from "./staves/staveDrawing.js";
@@ -83,7 +83,7 @@ function updateYLevelCounter(lessOrMore) {
 }
 
 // Add event listener for creating new buttons
-if (createButton)
+if (createButton) createButton.addEventListener("click", createNewButton);
 if (addNewLineButton) addNewLineButton.addEventListener("click", addNewLine);
 
 function refactorButtonUpdate(yLevelToRemove) {
@@ -586,5 +586,6 @@ export {
   staveVoiceCounter, 
   setStaveVoiceCounter, 
   addNewLine, 
-  resetPageState
+  resetPageState,
+  processNotes
 };

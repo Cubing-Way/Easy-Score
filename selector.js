@@ -120,7 +120,6 @@ function onMouseMove(event) {
     });
 }
 
-
 function onMouseUp() {
     const context = getCurrentContext();
     if (!isDragging || !context || !context.svg) return;
@@ -139,21 +138,6 @@ function onMouseLeave() {
 
 function onMouseEnter() {
     outputFlag = false;
-}
-function logSelectedStaves() {
-    console.log("Selected Staves:");
-    selectedStaves.forEach((stave) => {
-        const staveProperties = {
-            x: stave.getX(),
-            y: stave.getY(),
-            width: stave.getWidth(),
-            height: stave.getHeight(),
-            spacingBetweenLines: stave.getSpacingBetweenLines(),
-            numLines: stave.getNumLines(),
-            staveid: stave.attrs.id
-        };
-        console.log(staveProperties);
-    });
 }
 
 function isIntersecting(rect1, rect2) {
@@ -220,8 +204,23 @@ function highlightStaveByBoundingBox(bbox) {
     context.svg.appendChild(rect);
 }
 
-// Add event listeners for selection
-document.addEventListener("mousedown", onMouseDown);
+document.addEventListener("mousedown", (event) => {
+    const staveEditing = document.querySelector("#stave-editing");
+    const lineEditing = document.querySelector("#line-editing")
+
+    // 1. Segurança: Verifica se o #stave-editing realmente existe na tela
+    // 2. Verifica se o elemento clicado (event.target) está dentro dele
+    if (
+        staveEditing && staveEditing.contains(event.target) 
+        ||
+        lineEditing && lineEditing.contains(event.target) 
+    ) {
+        return; // Ignora o clique e sai da função
+    }
+
+    onMouseDown(event);
+});
+
 document.addEventListener("mousemove", onMouseMove);
 document.addEventListener("mouseup", onMouseUp);
 const output = document.getElementById("output");
@@ -230,4 +229,5 @@ if (output) {
     output.addEventListener("mouseenter", onMouseEnter);
 }
 
-export { selectedStaves, addClickRectForStave };
+
+export { selectedStaves, addClickRectForStave, getMousePosition };

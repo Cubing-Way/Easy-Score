@@ -7,10 +7,17 @@
     </head>
     <body>
       <div id="low-left-sidebar">
-                <div id="currentPage"></div>
+        <div id="page-managing">
+          <div id="currentPage"></div>
+            <button id="new page">Add</button>
+            <button id="delete page">Del</button>
+            <button id="clear-page">Clear</button>
+        </div>
+
+
         <div class="scale-control">
             <label for="scaleSlider">
-                Scale: <span id="scaleValue"></span>
+               <span id="scaleValue"></span>
             </label>
 
             <input
@@ -67,42 +74,49 @@
   </div>
 </div>
 
-        <div id="sidebar2" class="sidebar">
+
+<div id="editor-grid">
+  <!-- Sidebar -->
+<div id="stave-editing" class="sidebar">
+  <div class="sidebar-header">
+    <span>Stave Options</span>
+  </div>
+
+  <div class="sidebar-content">
+    <button id="Add/Change Clef">Add / Change Clef</button>
+    <button id="Add/Change Time Signature">Add / Change Time Signature</button>
+    <button id="Add/Change Key Signature">Add / Change Key Signature</button>
+    <button id="Add/Change Notes">Add / Change Voice</button>
+  </div>
+</div>
+  <div id="main"></div>
+
+  <div id="options-1">
+<div id="line-editing" class="sidebar">
+  <div class="sidebar-header">
+    <span>Line Options</span>
+  </div>
+
+  <div class="sidebar-content">
+    <button id="Add Clef">Add Clef (Line)</button>
+    <button id="Add Bar (all)">Add Bar (All)</button>
+    <button id="Remove Bars">Remove Bar(s)</button>
+    <button id="Add Line">Add Line</button>
+  </div>
+</div>
+  </div>
 
 
-                <button id="Add NoteHeads">Add NoteHeads</button>
-                <button id="Change Title">Change Title</button>
-                <button id="clear">Clear</button>
-                <button id="new page">New Page</button>
-                <button id="delete page">Delete Page</button>
-
-        </div>
-        <!-- Sidebar -->
-        <div id="sidebar" class="sidebar">
-
-            <button id="Add Clef">Add Clef (Line)</button>
-
-        <button id="Add Bar (all)">Add Bar (all)</button> 
-        <button id="Remove Bars">Remove Bar(s)</button>
-        <button id="Add Line">Add Line</button>
-
-            <button id="Add/Change Clef">Add/Change Clef</button>
-
-            <button id="Add/Change Time Signature">Add/Change Time Signature</button>
-
-            <button id="Add/Change Key Signature">Add/Change Key Signature</button>
-
-            <button id="Add/Change Notes">Add/Change Voice</button>
-        </div>
-        <!-- Main Elements-->
-        <div id="main"></div>
-
-        <script type="module" src="./options.js"></script>
-        <script type="module" src="./staves/staveController.js"></script>
-        <script type="module" src="./selector.js"></script>
-        <script type="module" src="./sheetmusic.js"></script>
-        <script type="module" src="./configurations.js"></script>
-        <script src="./hotbar.js"></script>
-        <link rel="stylesheet" href="./sidebarStyle.css">
-        <script type="module" src="./staves/page.js"></script>
-    </body>
+</div>
+    <!-- Main Elements-->
+    <script type="module" src="./options.js"></script>
+    <script type="module" src="./staves/staveController.js"></script>
+    <script type="module" src="./selector.js"></script>
+    <script type="module" src="./sheetmusic.js"></script>
+    <script type="module" src="./configurations.js"></script>
+    <script src="./hotbar.js"></script>
+    <link rel="stylesheet" href="./sidebarStyle.css">
+    <script type="module" src="./staves/page.js"></script>
+    <script type="module" src="./noteAdding.js"></script>
+  </body>
+</html>

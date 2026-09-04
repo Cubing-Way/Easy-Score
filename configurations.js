@@ -1,12 +1,14 @@
-import { setScale, setOffSetTitleY, setStavesArray } from "./staves/staveController.js";
+import { setScale, setStavesArray } from "./staves/staveController.js";
 import Vex from "vexflow";
 import { redrawStaves } from "./staves/staveDrawing.js";
 const { Stave, StaveNote, Beam, Formatter, Accidental, Dot, StaveTie, Curve, Annotation } = Vex;
 import { notesArray, voices, setNotesArray} from "./sheetmusic.js";
-import { lineObj } from "./options.js";
+import { lineObj, resetPageState, addNewLine } from "./options.js";
 import { staveState, projectState } from './staves/staveState.js';
-import { createNewPage, initializeDefaultPage, updateCounters } from "./staves/page.js";
-import { setActiveRender } from "./staves/page.js";
+import { createNewPage, initializeDefaultPage, newPage, updateCounters } from "./staves/page.js";
+import { setActiveRender, getCurrentPage, newRender } from "./staves/page.js";
+
+
 
 const savedState = {};
 let lastCopy;
@@ -22,26 +24,42 @@ function persistLastProjectId(projectId) {
   }
 }
 
-function clearCanvas() {
-  //Reset staveState
-  staveState.div = null;
-  staveState.title = null;
-  staveState.renderer = null;
-  staveState.context = null
-  staveState.stavesArray = [];
-  staveState.notesArray = [];
-  staveState.firstStavesByYPosition = {};
-  staveState.lastStavesByYPosition = {};
-  staveState.pageRenderMap = {};
-  staveState.activePageId = null;
-  staveState.width = 800;
-  staveState.scale = 1.15
+function clearCanvas(allOrSingle = "all", pgIndex = null) {
+  if (allOrSingle === "all") {
+    // Reset staveState
+    staveState.div = null;
+    staveState.title = null;
+    staveState.renderer = null;
+    staveState.context = null;
+    staveState.stavesArray = [];
+    staveState.notesArray = [];
+    staveState.firstStavesByYPosition = {};
+    staveState.lastStavesByYPosition = {};
+    staveState.pageRenderMap = {};
+    staveState.activePageId = null;
+    staveState.width = 500;
+    staveState.scale = 1;
 
-  //Reset projectState
-  projectState.pagesArray = [];
+    // Reset projectState & HTML
+    projectState.pagesArray = [];
+    document.getElementById("main").innerHTML = "";
+  } else if (allOrSingle === "single" && pgIndex !== null) {
+    const targetPage = projectState.pagesArray[pgIndex];
+    
+    if (targetPage) {
+      // Clear out the specific page's container in the DOM
+      const pageDiv = document.getElementById(targetPage.output)?.parentNode;
+      if (pageDiv) {
+        const titleHTML = pgIndex === 0 ? `<h1 id="${targetPage.title}" class="content page-title">New page</h1>` : "";
+        pageDiv.innerHTML = `${titleHTML} <div id="${targetPage.output}" class="content"></div>`;
+      }
 
-  //Reset HTML
-  document.getElementById("main").innerHTML = "";
+      // Re-instantiate a clean renderer for this page
+      const freshRender = newRender(targetPage.output, targetPage.title);
+      projectState.pagesArray[pgIndex] = freshRender;
+    }
+  }
+
   recordHistory();
 }
 
@@ -147,7 +165,7 @@ function newCopy() {
   clearCanvas();
   createNewPage();
   document.getElementById("scaleSlider").value = Math.round(Number(staveState.scale) * 100);
-  document.getElementById("scaleValue").textContent = Math.round(Number(staveState.scale) * 100) + "%";
+  document.getElementById("scaleValue").textContent = Math.round(Number(staveState.scale) * 100);
   lastCopy = null;
   persistLastProjectId(null);
 }
@@ -279,10 +297,12 @@ async function restoreState(save, setAsLast = true) {
   }
 
   // Render every page using the project's scale
-  for (const page of projectState.pagesArray) {
+  projectState.pagesArray.forEach((page, index) => {
     setActiveRender(page);
     redrawStaves();
-  }
+    if (index === 0) document.getElementById(page.title).addEventListener("click", transformToInput2);
+  })
+
 
   if (projectState.pagesArray.length === 0) {
       staveState.context = activeContext;
@@ -301,8 +321,9 @@ async function restoreState(save, setAsLast = true) {
   window.dispatchEvent(new Event('scroll'));
   updateCounters();
   setScale(staveState.scale);
-  document.getElementById("scaleValue").textContent = Math.round(Number(staveState.scale) * 100) + "%";
+  document.getElementById("scaleValue").textContent = Math.round(Number(staveState.scale) * 100);
   document.getElementById("scaleSlider").value = Math.round(Number(staveState.scale) * 100);
+  
 }
 
 function updateCopy() {
@@ -408,6 +429,7 @@ function loadAllCopies() {
   // No saved project was selected/found
   initializeDefaultPage();
   window.dispatchEvent(new Event('scroll'));
+  document.getElementById("title-1").addEventListener("click", transformToInput2);
 }
 
 function saveAsFunction() {
@@ -435,7 +457,8 @@ function deleteCurrCopy()  {
 
   deleteCopy(saveBtn); // reuse existing deleteCopy 'logic
   lastCopy = null; // clear reference after deletions
-  document.getElementById("main").innerHTML = "";
+  clearCanvas();
+  createNewPage();
 };
 
 document.getElementById("redo").addEventListener("click", redo);
@@ -476,76 +499,64 @@ document.addEventListener("keydown", e => {
     }
   }
 });
+  
+function transformToInput2() {
+  const h1 = this;
 
-function recreateButton() {
-    // Create a new button element
-    const button = document.createElement('button');
-    button.id = 'Change Scale';
-    button.textContent = 'Change Scale';
-  
-    // Attach the event listener to the button
-    button.addEventListener('click', transformToInput);
-  
-    return button;
+  // Create the input
+  const input = document.createElement("input");
+  input.value = h1.textContent;
+  input.classList.add("page-title-input");
+
+  input.style.fontSize = getComputedStyle(h1).fontSize;
+  input.style.fontWeight = getComputedStyle(h1).fontWeight;
+
+  // Replace the h1 with the input
+  h1.parentNode.replaceChild(input, h1);
+
+  input.focus();
+  input.select();
+
+  let isFinished = false; // <-- Guard flag
+
+  function finishEditing() {
+    if (isFinished || !input.parentNode) return; // <-- Prevent double-execution
+    isFinished = true;
+
+    const newTitle = input.value.trim();
+
+    // Create a new h1
+    const newH1 = document.createElement("h1");
+    newH1.id = "title";
+    newH1.classList.add("page-title");
+    newH1.textContent = newTitle || h1.textContent;
+    newH1.style.margin = "20px";
+
+    // Put the h1 back
+    input.parentNode.replaceChild(newH1, input);
+
+    // Make the new h1 clickable
+    newH1.addEventListener("click", transformToInput2);
   }
 
-function recreateButton2() {
-    // Create a new button element
-    const button = document.createElement('button');
-    button.id = 'Change Title';
-    button.textContent = 'Change Title';
-  
-    // Attach the event listener to the button
-    button.addEventListener('click', transformToInput2);
-  
-    return button;
-  }
-  
-  function transformToInput() {
-    const button = this; // Reference to the button element
-  
-    // Create the select element
-    const input = document.createElement('input');
-  
-    // Replace the button with the select element
-    button.parentNode.replaceChild(input, button);
-  
-    // Add an event listener to the select element
-    input.addEventListener('change', function () {
-      
-      //Change scale
-      setScale(input.value);
+  // Save when pressing Enter
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      finishEditing();
+    }
 
-      // Create a new button and replace the select with it
-      const newButton = recreateButton();
-      input.parentNode.replaceChild(newButton, input);
-      
-    });
-  }
-  
-    function transformToInput2() {
-    const button = this; // Reference to the button element
-  
-    // Create the select element
-    const input = document.createElement('input');
-  
-    // Replace the button with the select element
-    button.parentNode.replaceChild(input, button);
-  
-    // Add an event listener to the select element
-    input.addEventListener('change', function () {
+    if (e.key === "Escape") {
+      if (!isFinished) {
+        isFinished = true;
+        input.parentNode.replaceChild(h1, input);
+      }
+    }
+  });
 
-    //Change the title
-    document.getElementById("title").textContent = input.value;
-
-    // Call the function only after a valid option is selected
-    setOffSetTitleY();
-  
-    // Create a new button and replace the select with it
-    const newButton = recreateButton2();
-    input.parentNode.replaceChild(newButton, input);
-    });
-  }
+  // Save when clicking away
+  input.addEventListener("blur", finishEditing);
+}
 
 // Add the initial event listener to the button
 const scaleSlider = document.getElementById("scaleSlider");
@@ -555,13 +566,42 @@ scaleSlider.addEventListener("input", function () {
     const percentage = Number(this.value);
     const newScale = percentage / 100;
 
-    scaleValue.textContent = `${percentage}%`;
+    scaleValue.textContent = `${percentage}`;
 
     setScale(newScale)
 });
 
-document.getElementById('Change Title').addEventListener('click', transformToInput2);
-document.getElementById("clear").addEventListener("click", clearCanvas);
+document.getElementById("clear-page").addEventListener("click", () => {
+  const page = getCurrentPage();
+  if (!page) return;
+  
+  const pageIndex = parseInt(page.id.replace('page-', ''), 10);
+
+  // 1. Clear just the canvas data and layout
+  clearCanvas("single", pageIndex);
+
+  // 2. Target the cleared page and make it active
+  const targetPage = projectState.pagesArray[pageIndex];
+  setActiveRender(targetPage);
+
+  // 3. Re-initialize default staves and lines
+  resetPageState();
+  addNewLine();
+  setScale(staveState.scale);
+
+  // Rebind title click event if it's the first page
+  if (pageIndex === 0) {
+    document.getElementById(targetPage.title).addEventListener("click", transformToInput2);
+  }
+
+  window.dispatchEvent(new Event('scroll'));
+});
+
+document.getElementById("clear").addEventListener("click", () => {
+  clearCanvas();
+  const nwPg = createNewPage();
+  document.getElementById(nwPg.title).addEventListener("click", transformToInput2);
+});
 
   let noteHeadFlag = false;
 
@@ -737,8 +777,5 @@ document.getElementById("clear").addEventListener("click", clearCanvas);
         lastVcStave = vc.stave;
     });
   }
-
-
-  document.getElementById('Add NoteHeads').addEventListener('click', addNoteHeads);
-
-  export { noteHeadFlag, addNoteHeads, recordHistory, saveState }
+  
+  export { noteHeadFlag, addNoteHeads, recordHistory, saveState, undo }

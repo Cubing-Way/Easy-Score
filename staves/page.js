@@ -65,6 +65,8 @@ function initializeDefaultPage() {
   return defaultRender;
 }
 
+
+let height = 1100;
 function newRender(output, title) {
   const div = document.getElementById(output);
   const titleElement = document.getElementById(title);
@@ -74,7 +76,8 @@ function newRender(output, title) {
     Renderer.Backends.SVG
   );
 
-  renderer.resize(900, 1100);
+  if (projectState.pagesArray.length > 0) height = 1200;
+  renderer.resize(800, height);
 
   const context = renderer.getContext();
 
@@ -97,14 +100,14 @@ function newRender(output, title) {
 function createNewPage() {
   const { output, title } = genNewOutputAndTitle();
   const newPgRender = newPage(output, title);
-
+  
   resetPageState();
   setActiveRender(newPgRender);
   addNewLine();
   setScale(staveState.scale);
 
   document.getElementById("scaleSlider").value = Math.round(Number(staveState.scale) * 100);
-  document.getElementById("scaleValue").textContent = Math.round(Number(staveState.scale) * 100) + "%";
+  document.getElementById("scaleValue").textContent = Math.round(Number(staveState.scale) * 100);
 
   staveState.div = newPgRender.div;
   staveState.title = newPgRender.title;
@@ -112,7 +115,6 @@ function createNewPage() {
   staveState.context = newPgRender.context;
   staveState.stavesArray = newPgRender.stavesArray;
   window.dispatchEvent(new Event('scroll'));
-
   return newPgRender;
 }
 
@@ -141,10 +143,17 @@ function newPage(output, title, initialStavesArray = []) {
   newDiv.className = "a4-paper";
   newDiv.id = `page-${projectState.pagesArray.length}`;
 
-  newDiv.innerHTML = `
-    <h1 id="${title}" class="content page-title">New page</h1>
-    <div id="${output}" class="content"></div>
-  `;
+  if (projectState.pagesArray.length === 0) {
+    newDiv.innerHTML = `
+      <h1 id="${title}" class="content page-title">New page</h1>
+      <div id="${output}" class="content"></div>
+    `;
+  } else {
+    newDiv.innerHTML = `
+      <div id="${output}" class="content"></div>
+    `;
+  }
+
 
   document.getElementById("main").appendChild(newDiv);
 
@@ -162,8 +171,9 @@ function newPage(output, title, initialStavesArray = []) {
 document.getElementById("delete page").addEventListener("click", () => {
   const mainContainer = document.getElementById("main");
   const pages = mainContainer.querySelectorAll(".a4-paper, .page");
-  
+
   if (pages.length <= 1) {
+    console.log("b")
     alert("You must keep at least one page!");
     return;
   }
@@ -175,6 +185,7 @@ document.getElementById("delete page").addEventListener("click", () => {
   saveState();
 
   window.dispatchEvent(new Event('scroll'));
+
 });
 
 

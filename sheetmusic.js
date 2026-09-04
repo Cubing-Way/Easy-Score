@@ -102,20 +102,20 @@ function setNotesArray(newArray) {
   notesArray = newArray;
 }
 
-function addVoice(stave, staveAndNotes) {
+function addVoice(stave, staveAndNotes, isPreview = false) {
     context = staveState.context;
     const notes = staveAndNotes.notes;
     const beamIndices = staveAndNotes.beamIndices;
     const counter = staveAndNotes.counter;
     let note1;
-    let lastNote;
+    let chord;
     if (notes.length > 0) {
         const voice = [];
         notes.forEach((note, index) => {
             if (Array.isArray(note)) {
                 const chordNotes = note.map(n => n.letter + n.accidental + "/" + n.octave);
                 const chordDuration = note.map(n => n.chordDuration);
-                const chord = new StaveNote({ keys: chordNotes, duration: chordDuration })
+                chord = new StaveNote({ keys: chordNotes, duration: chordDuration })
                 let isDotted = false;
                 note.forEach((n, ind) => {
                     if (n.accidental) {
@@ -192,13 +192,15 @@ function addVoice(stave, staveAndNotes) {
                     voiceFlag = true;
                 }
             });
-            
             if (!voiceFlag) voices.push({voice, stave, counter});
         } else {
             voices.push({voice, stave, counter});
         }
+        return voice;
     }
 }
+
+
 
 function addVoiceHandler(notes, addOrChange, counter, beamIndices, tieOrSlurIndices) {
     let flag = false;
@@ -216,6 +218,7 @@ function addVoiceHandler(notes, addOrChange, counter, beamIndices, tieOrSlurIndi
                 });
             }
         } else {
+
             staveState.notesArray.push({staveId : stave.attrs.id, notes, counter, beamIndices, tieOrSlurIndices});
         }
         flag = true;

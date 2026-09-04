@@ -1,9 +1,17 @@
 import { getCurrentStavesArray, syncStavesArray } from "./staveDrawing";
 import { staveState } from "./staveState";
-import { clickCounts, lineObj} from "../options";
-import { flattenArray, createEmptyStave, recalculateStaveWidths, redrawStaves} from "./staveDrawing";
+import { clickCounts, lineObj, updateYLevelCounter} from "../options";
+import { 
+  flattenArray, 
+  createEmptyStave, 
+  recalculateStaveWidths, 
+  redrawStaves, 
+  resetFirstStavesByYPosition
+} from "./staveDrawing";
 import { addKeySignature, addTimeSignature, addNewClef } from "../sheetmusic";
 import { recordHistory } from "../configurations";
+import { selectedStaves } from "../selector";
+
 
 const width = staveState.width;
 let stavesArray = staveState.stavesArray;
@@ -182,7 +190,6 @@ function removeYLevel(yLevel, currLine) {
     }
   });  
 
-  refactorButtonUpdate(true);
   updateYLevelCounter("less"); // Increment the Y-level for the new button
 
   // Adjust the Y-position of staves above the removed level
@@ -239,7 +246,7 @@ function removeStave(xPosition, yPosition, currLine) {
   // Check if the stave is the first for this Y-level
   const isFirstStaveOfYLevel = staveState.firstStavesByYPosition[yPosition] === stavesArray[currLine][staveIndex];
   // Check if the stave is the last for this Y-level
-  const isLastStaveofYLevel = lastStavesByYPosition[yPosition] === stavesArray[currLine][staveIndex];  
+  const isLastStaveofYLevel = staveState.lastStavesByYPosition[yPosition] === stavesArray[currLine][staveIndex];  
 
   if (stavesAtYPosition.length === 1) {
     // Show confirmation dialog

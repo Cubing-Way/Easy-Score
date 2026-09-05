@@ -1,9 +1,4 @@
-import {
-    getCurrentContext,
-    getCurrentStavesArray,
-    redrawStaves
-} from "./staves/staveDrawing";
-
+import { getCurrentContext, getCurrentStavesArray, redrawStaves} from "./staves/staveDrawing";
 import { getMousePosition } from "./selector";
 import { addVoice, notesArray } from "./sheetmusic";
 import { staveState } from "./staves/staveState";
@@ -48,6 +43,8 @@ function resetHitboxes() {
     hitboxes = [];
 }
 
+let position;
+
 function onStaveLineHover(event) {
     const context = getCurrentContext();
 
@@ -73,9 +70,7 @@ function onStaveLineHover(event) {
     const topLineY = stave.getYForLine(0);
     const spacing = stave.getSpacingBetweenLines();
 
-    const position = Math.round(
-        (y - topLineY) / (spacing / 2)
-    );
+     position = Math.round((y - topLineY) / (spacing / 2));
 
     if (position > 14 || position < -6) {
         previousStaveId = null;
@@ -90,12 +85,7 @@ function onStaveLineHover(event) {
     }
 
     // Nothing changed — don't destroy/recreate hitboxes.
-    if (
-        String(staveId) === String(id) &&
-        currentPosition === position
-    ) {
-        return;
-    }
+    if (String(staveId) === String(id) && currentPosition === position) return;
 
     previousStaveId = staveId;
     staveId = id;
@@ -104,12 +94,12 @@ function onStaveLineHover(event) {
     showPreview(stave, position);
 }
 
-
-
 function addNtsByClick() {
     if (staveId === null) return;
 
-    const stave = getCurrentStavesArray().flat().find(stv => stv.attrs.id === staveId);
+    const stave = getCurrentStavesArray()
+        .flat()
+        .find(stv => String(stv.attrs.id) === String(staveId));
 
     if (!stave) return;
 
@@ -126,51 +116,60 @@ function addNtsByClick() {
         isDotted: false
     };
 
-    let staveNotes = staveState.notesArray.find(nts => nts.staveId === staveId);
-
-if (!staveNotes) {
-    // No notes yet → create first note
-    staveNotes = {
-        staveId,
-        notes: [note],
-        counter: 0,
-        beamIndices: [],
-        tieOrSlurIndices: []
-    };
-
-    staveState.notesArray.push(staveNotes);
-
-} else if (previousNote) {
-
-    // Find the EXISTING note that was hovered
-    const noteIndex = staveNotes.notes.findIndex(
-        item => item === previousNote
+    let staveNotes = staveState.notesArray.find(
+        nts => String(nts.staveId) === String(staveId)
     );
 
-    if (noteIndex === -1) return;
+    // No notes yet
+    if (!staveNotes) {
 
-    const item = staveNotes.notes[noteIndex];
+        staveNotes = {
+            staveId,
+            notes: [note],
+            counter: 0,
+            beamIndices: [],
+            tieOrSlurIndices: []
+        };
 
-    if (Array.isArray(item)) {
-        // Existing chord → add another note
-        item.push(note);
+        staveState.notesArray.push(staveNotes);
+
+    } else if (previousNote) {
+
+        const noteIndex = staveNotes.notes.findIndex(
+            item => item === previousNote
+        );
+
+        if (noteIndex === -1) {
+            return;
+        }
+
+        const item = staveNotes.notes[noteIndex];
+
+        // Existing chord
+        if (Array.isArray(item)) {
+
+            item.push(note);
+
+        // Existing single note
+        } else {
+
+            staveNotes.notes[noteIndex] = [
+                item,
+                note
+            ];
+        }
+
     } else {
-        // Existing single note → turn it into a chord
-        staveNotes.notes[noteIndex] = [item, note];
+
+        // Add a completely new note
+        staveNotes.notes.push(note);
     }
 
-} else {
-
-    // No hovered note → append a new note
-    staveNotes.notes.push(note);
-}
-
-
-    // IMPORTANT:
-    // The old hitbox should no longer control previousNote
     resetHitboxes();
 
-    redrawStaves();
+    previousNote = null;
+
+    showPreview(stave, position)
 }
 
 function showPreview(stave, position) {
@@ -180,9 +179,7 @@ function showPreview(stave, position) {
 
     resetHitboxes();
 
-    const existing = staveState.notesArray.find(
-        nts => String(nts.staveId) === String(stave.attrs.id)
-    );
+    const existing = staveState.notesArray.find(nts => String(nts.staveId) === String(stave.attrs.id));
 
     const previewNote = {
         letter: pitch.letter,
@@ -193,25 +190,22 @@ function showPreview(stave, position) {
         isDotted: false
     };
 
-
     let previewNotes;
 
     if (!existing) {
         previewNotes = [previewNote];
 
     } else if (previousNote) {
+        previewNotes = existing.notes.map(item => {
+            if (item !== previousNote) return item;
 
-        // Replace the hovered note with a temporary chord
-        previewNotes = existing.notes.map(note => note === previousNote? 
-            [previousNote, previewNote]
-                : 
-                note
-        );
+            if (Array.isArray(item)) return [...item,previewNote];
+
+            return [item, previewNote];
+        });
 
     } else {
-        // Normal new-note preview
-        previewNotes = [...existing.notes, previewNote
-        ];
+        previewNotes = [...existing.notes, previewNote];
     }
 
     const staveAndNotes = {
@@ -224,12 +218,9 @@ function showPreview(stave, position) {
 
     preview = { stave, position };
 
-    redrawStaves({
-        hideNotesForStaveId: stave.attrs.id
-    });
+    redrawStaves({hideNotesForStaveId: stave.attrs.id});
 
-    const notes = addVoice(stave, staveAndNotes);
-
+    const notes = addVoice(stave, staveAndNotes, true);
 
     if (Array.isArray(notes)) {
 
@@ -241,7 +232,10 @@ function showPreview(stave, position) {
 
             const bbox = element.getBBox();
 
-            const hitbox = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+            const hitbox = document.createElementNS(
+                "http://www.w3.org/2000/svg",
+                "rect"
+            );
 
             hitbox.setAttribute("x", bbox.x - 5);
             hitbox.setAttribute("y", bbox.y - 5);
@@ -253,32 +247,28 @@ function showPreview(stave, position) {
 
             hitbox.style.pointerEvents = "all";
 
-        hitbox.addEventListener("mouseenter", () => {
-            const staveNotes = staveState.notesArray.find(
-                nts => String(nts.staveId) === String(stave.attrs.id)
-            );
+            hitbox.addEventListener("mouseenter", () => {
+                const staveNotes = staveState.notesArray.find(
+                    nts =>
+                        String(nts.staveId) ===
+                        String(stave.attrs.id)
+                );
 
-            if (!staveNotes) return;
+                if (!staveNotes) return;
 
-            previousNote = staveNotes.notes[index];
-            console.log("ENTER", previousNote);
-        });
+                previousNote = staveNotes.notes[index];
+            });
 
-        hitbox.addEventListener("mouseleave", () => {
-            previousNote = null;
-            console.log("LEAVE");
-        });
+            hitbox.addEventListener("mouseleave", () => {
+                previousNote = null;
+            });
 
             element.parentNode.appendChild(hitbox);
 
-            // Save the hitbox so we can remove it later
             hitboxes.push(hitbox);
-
         });
-        
     }
 }
-
 
 function getStaveCenterY(stave) {
 

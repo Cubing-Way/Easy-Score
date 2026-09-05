@@ -1,6 +1,6 @@
 //sheetmusic.js
 
-import Vex from "vexflow";
+import Vex, { TimeSignature } from "vexflow";
 import { flattenArray, redrawStaves, recalculateStaveWidths } from "./staves/staveDrawing.js";
 import { selectedStaves } from "./selector.js";
 import { staveVoiceCounter } from "./options.js";
@@ -129,6 +129,13 @@ function addVoice(stave, staveAndNotes, isPreview = false) {
                 });
                 if (isDotted) Dot.buildAndAttach([chord], {all: true});
                 voice.push(chord);
+
+                if (isPreview)  {  
+                    chord.setStyle({
+                        fillStyle: "blue",
+                        strokeStyle: "blue"
+                    });
+                }
             } else {
                 if (note.isDotted) {
                     note1 = new StaveNote({ keys: [note.letter + note.accidental + "/" + note.octave], duration: note.duration });
@@ -141,8 +148,86 @@ function addVoice(stave, staveAndNotes, isPreview = false) {
                 if (note.accidental) {
                     voice[index].addModifier(new Accidental(note.accidental));
                 }
+                if (isPreview) {
+                    note1.setStyle({
+                        fillStyle: "blue",
+                        strokeStyle: "blue"
+                    });
+                }
+
             }
         });
+        addRemainingRests(voice, stave, isPreview, notes);
+
+function addRemainingRests(voice, stave, isPreview = false, notes = []) {
+    const timeSig = stave.modifiers.find(modifier => modifier.attrs?.type === "TimeSignature");
+
+    if (!timeSig) return;
+
+    const [beats, beatValue] = timeSig.timeSpec.split("/").map(Number);
+
+    const RESOLUTION = 4096;
+    const totalTicks = (beats / beatValue) * RESOLUTION;
+
+    // Calculate duration from YOUR application's note data.
+    const usedTicks = notes.reduce((total, note) => {
+        if (Array.isArray(note)) {
+            // Chord: all notes share the chord duration.
+            const duration = note[0].chordDuration;
+            return total + (RESOLUTION / duration);
+        }
+
+        // Ignore rests that already exist in the data.
+        if (note.isRest) return total;
+
+
+        return total + (RESOLUTION / note.duration);
+    }, 0);
+
+    let remainingTicks = totalTicks - usedTicks;
+
+    if (remainingTicks <= 0) return;
+
+    const durations = [
+        ["w", RESOLUTION],
+        ["h", RESOLUTION / 2],
+        ["q", RESOLUTION / 4],
+        ["8", RESOLUTION / 8],
+        ["16", RESOLUTION / 16],
+        ["32", RESOLUTION / 32],
+        ["64", RESOLUTION / 64],
+    ];
+
+    while (remainingTicks > 0) {
+        let selected = null;
+
+        for (const [duration, ticks] of durations) {
+            if (ticks <= remainingTicks) {
+                selected = { duration, ticks };
+                break;
+            }
+        }
+
+        if (!selected) break;
+
+        const extraRest = new StaveNote({
+            keys: ["d/5"],
+            duration: selected.duration + "r",
+        });
+
+        if (isPreview) {
+            extraRest.setStyle({
+                fillStyle: "blue",
+                strokeStyle: "blue",
+            });
+        }
+
+        voice.push(extraRest);
+        remainingTicks -= selected.ticks;
+    }
+}
+
+
         let beams = [];
         let beamVoices = [];
         let index1;
@@ -196,9 +281,11 @@ function addVoice(stave, staveAndNotes, isPreview = false) {
         } else {
             voices.push({voice, stave, counter});
         }
+
         return voice;
     }
 }
+
 
 
 

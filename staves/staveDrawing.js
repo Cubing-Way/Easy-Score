@@ -271,6 +271,29 @@ function createConnector(stave1, stave2, type) {
   connector.setContext(staveState.context).draw();
 }
 
+function addFullRest(stave, isPreview = false) {
+    const rest = new StaveNote({
+        keys: ["d/5"],
+        duration: "wr"
+    });
+
+    if (isPreview) {
+        rest.setStyle({
+            fillStyle: "blue",
+            strokeStyle: "blue"
+        });
+    }
+
+    Formatter.FormatAndDraw(
+        staveState.context,
+        stave,
+        [rest]
+    );
+
+    return rest;
+}
+
+
 function redrawStaves({ hideNotesForStaveId = null } = {}) {
     const context = staveState.context;
     const stavesArray = staveState.stavesArray;
@@ -287,15 +310,18 @@ function redrawStaves({ hideNotesForStaveId = null } = {}) {
             const staveId = String(stave.attrs.id);
 
             // Skip normal notes only for the preview stave
-            if (String(hideNotesForStaveId) === staveId) {
-                return;
-            }
+            if (String(hideNotesForStaveId) === staveId) return;
 
-            notesArray.forEach(stvNts => {
-                if (String(stvNts.staveId) === staveId) {
-                    addVoice(stave, stvNts);
-                }
-            });
+const staveNotes = notesArray.find(
+    stvNts => String(stvNts.staveId) === staveId
+);
+
+if (staveNotes) {
+    addVoice(stave, staveNotes);
+} else {
+    addFullRest(stave);
+}
+
         });
     });
 

@@ -134,8 +134,7 @@ function addBar(yLevel, param) {
       addKeySignature(currStave, "A");
 
       addTimeSignature(currStave);
-
-
+      
       
       if (counter === 1) {
         addNewClef(currStave, "treble");

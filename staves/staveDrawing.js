@@ -277,6 +277,8 @@ function addFullRest(stave, isPreview = false) {
         duration: "wr"
     });
 
+    rest.setCenterAlignment(true);
+
     if (isPreview) {
         rest.setStyle({
             fillStyle: "blue",
@@ -292,6 +294,7 @@ function addFullRest(stave, isPreview = false) {
 
     return rest;
 }
+
 
 
 function redrawStaves({ hideNotesForStaveId = null } = {}) {
@@ -312,16 +315,15 @@ function redrawStaves({ hideNotesForStaveId = null } = {}) {
             // Skip normal notes only for the preview stave
             if (String(hideNotesForStaveId) === staveId) return;
 
-const staveNotes = notesArray.find(
-    stvNts => String(stvNts.staveId) === staveId
-);
+            const staveNotes = notesArray.find(
+                stvNts => String(stvNts.staveId) === staveId
+            );
 
-if (staveNotes) {
-    addVoice(stave, staveNotes);
-} else {
-    addFullRest(stave);
-}
-
+            if (staveNotes) {
+                addVoice(stave, staveNotes);
+            } else {
+                addFullRest(stave);
+            }
         });
     });
 

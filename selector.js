@@ -36,19 +36,23 @@ let clickedStaves = true;
 let outputFlag = false;
 
 function getMousePosition(event) {
-    const context = getCurrentContext();
-    if (!context || !context.svg) return { x: 0, y: 0 };
+    const svg = getCurrentContext()?.svg;
 
-    // Fallback if getScreenCTM is unavailable
-    const rect = context.svg.getBoundingClientRect();
-    const scaleX = context.svg.viewBox.baseVal.width / rect.width;
-    const scaleY = context.svg.viewBox.baseVal.height / rect.height;
+    if (!svg) return null;
+
+    const ctm = svg.getScreenCTM();
+
+    if (!ctm) return null;
+
+    const point = new DOMPoint(event.clientX, event.clientY);
+    const svgPoint = point.matrixTransform(ctm.inverse());
 
     return {
-        x: (event.clientX - rect.left) * scaleX,
-        y: (event.clientY - rect.top) * scaleY,
+        x: svgPoint.x,
+        y: svgPoint.y
     };
 }
+
 
 function onMouseDown(event) {
     const context = getCurrentContext();

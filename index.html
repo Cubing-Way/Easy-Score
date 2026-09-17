@@ -4,6 +4,7 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Customizable Sheet Music</title>
+        <link rel="stylesheet" href="./sidebarStyle.css">
     </head>
     <body>
       <div id="low-left-sidebar">
@@ -33,6 +34,7 @@
       </div>
       
         <div class="menu-bar">
+          
   <div class="menu-item">
     File
     <div class="dropdown">
@@ -56,7 +58,110 @@
       <button id="redo">Redo</button>
     </div>
   </div>
+      <!-- Simulated svg select -->
+  <div id="duration-select" class="duration-select">
+    <button
+      type="button"
+      id="duration-selected"
+      aria-label="Selected note duration"
+    >
+      <span id="duration-selected-note"></span>
+    </button>
+
+    <div
+      id="duration-options"
+      class="duration-options"
+    ></div>
+  </div>
+<!-- ACCIDENTAL -->
+<div id="accidental-select" class="duration-select">
+
+  <button
+    type="button"
+    id="accidental-selected"
+    aria-label="Selected accidental"
+  >
+    <span id="accidental-selected-note"></span>
+  </button>
+
+  <div
+    id="accidental-options"
+    class="duration-options"
+  ></div>
+
 </div>
+
+
+<!-- NOTE MODIFIER -->
+<div id="note-modifier-select" class="duration-select">
+
+  <button
+    type="button"
+    id="note-modifier-selected"
+    aria-label="Selected note modifier"
+  >
+    <span id="note-modifier-selected-note"></span>
+  </button>
+
+  <div
+    id="note-modifier-options"
+    class="duration-options"
+  ></div>
+
+</div>
+<!-- NOTATION ACTION / CONNECT -->
+
+<!-- NOTATION ACTION / CONNECT -->
+
+<div
+  id="notation-action-select"
+  class="notation-action-select"
+>
+  <button
+    type="button"
+    id="notation-action-selected"
+    aria-label="Selected notation connectors"
+    aria-haspopup="true"
+    aria-expanded="false"
+  >
+    <span
+      id="notation-action-selected-note"
+    ></span>
+  </button>
+
+  <div
+    id="notation-action-options"
+    class="notation-action-options"
+    role="group"
+    aria-label="Notation connectors"
+  ></div>
+</div>
+<button id="play">▶ Play</button>
+<button id="stop">⏹ Stop</button>
+
+<select id="instrument">
+  <option value="piano">Piano</option>
+  <option value="violin">Violin</option>
+  <option value="viola">Viola</option>
+  <option value="cello">Cello</option>
+  <option value="flute">Flute</option>
+  <option value="trumpet">Trumpet</option>
+  <option value="clarinet">Clarinet</option>
+  <option value="oboe">Oboe</option>
+  <option value="bassoon">Bassoon</option>
+  <option value="guitar">Guitar</option>
+  <option value="harp">Harp</option>
+  <option value="organ">Organ</option>
+  <option value="marimba">Marimba</option>
+  <option value="vibraphone">Vibraphone</option>
+  <option value="xylophone">Xylophone</option>
+  <option value="musicBox">Music Box</option>
+  <option value="harpsichord">Harpsichord</option>
+</select>
+
+</div>
+
+
 
 <!-- Save As Modal -->
 <div id="saveAsModal" class="modal">
@@ -115,8 +220,8 @@
     <script type="module" src="./sheetmusic.js"></script>
     <script type="module" src="./configurations.js"></script>
     <script src="./hotbar.js"></script>
-    <link rel="stylesheet" href="./sidebarStyle.css">
     <script type="module" src="./staves/page.js"></script>
-    <script type="module" src="./noteAdding.js"></script>
+    <script type="module" src="./noteAdding/noteAdd.js"></script>
+    <script type="module" src="./midi.js"></script>
   </body>
 </html>

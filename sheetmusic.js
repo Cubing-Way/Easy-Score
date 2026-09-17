@@ -1,6 +1,6 @@
 //sheetmusic.js
 
-import Vex, { TimeSignature } from "vexflow";
+import Vex, { Articulation } from "vexflow";
 import { flattenArray, redrawStaves, recalculateStaveWidths } from "./staves/staveDrawing.js";
 import { selectedStaves } from "./selector.js";
 import { staveVoiceCounter } from "./options.js";
@@ -102,91 +102,524 @@ function setNotesArray(newArray) {
   notesArray = newArray;
 }
 
-function addVoice(stave, staveAndNotes, isPreview = false) {
+function applyAccidental(staveNote, note, index = 0) {
+    if (!note.accidental) return;
+
+    staveNote.addModifier(
+        new Accidental(note.accidental),
+        index
+    );
+}
+
+
+function applyDot(staveNote, note, index = null) {
+    if (!note.isDotted) return;
+
+    if (index === null) {
+        Dot.buildAndAttach([staveNote]);
+    } else {
+        Dot.buildAndAttach([staveNote], {
+            index
+        });
+    }
+}
+
+
+function applyArticulation(staveNote, note) {
+    if (!note.articulation) return;
+
+    const articulation = new Articulation(
+        note.articulation
+    );
+
+    articulation.setPosition(
+        Articulation.Position.ABOVE
+    );
+
+    staveNote.addModifier(
+        articulation,
+        0
+    );
+}
+
+
+function applyNoteModifiers(staveNote, note, index = 0) {
+    applyAccidental(
+        staveNote,
+        note,
+        index
+    );
+
+    applyDot(
+        staveNote,
+        note,
+        null
+    );
+
+    applyArticulation(
+        staveNote,
+        note
+    );
+}
+
+
+function addVoice(
+    stave,
+    staveAndNotes,
+    isPreview = false
+) {
     context = staveState.context;
+
     const notes = staveAndNotes.notes;
     const beamIndices = staveAndNotes.beamIndices;
     const counter = staveAndNotes.counter;
-    let note1;
-    let chord;
-    if (notes.length > 0) {
-        const voice = [];
-        notes.forEach((note, index) => {
-            if (Array.isArray(note)) {
-                const chordNotes = note.map(n => n.letter + n.accidental + "/" + n.octave);
-                const chordDuration = note.map(n => n.chordDuration);
-                chord = new StaveNote({ keys: chordNotes, duration: chordDuration })
-                let isDotted = false;
-                note.forEach((n, ind) => {
-                    if (n.accidental) {
-                        chord.addModifier(new Accidental(n.accidental), ind);
-                    }
-                    if (n.isDotted1) {
-                        isDotted = true;
-                    } else if (n.isDotted2) {
-                        Dot.buildAndAttach([chord], {index: ind});                       
-                    }
-                });
-                if (isDotted) Dot.buildAndAttach([chord], {all: true});
-                voice.push(chord);
 
-                if (isPreview)  {  
-                    chord.setStyle({
-                        fillStyle: "blue",
-                        strokeStyle: "blue"
-                    });
-                }
+    const voice = [];
+
+
+    // =====================================================
+    // CREATE VEXFLOW NOTES
+    // =====================================================
+
+    notes.forEach((note, index) => {
+
+        let staveNote;
+
+
+        // -------------------------------------------------
+        // CHORD
+        // -------------------------------------------------
+
+        if (Array.isArray(note)) {
+
+            const keys = note.map(
+                n => `${n.letter}${n.accidental || ""}/${n.octave}`
+            );
+
+            const duration =
+                note[0].chordDuration;
+
+            staveNote = new StaveNote({
+                keys,
+                duration
+            });
+
+
+            // Apply modifiers to each note
+            note.forEach((n, i) => {
+
+                // Accidental
+                applyAccidental(
+                    staveNote,
+                    n,
+                    i
+                );
+            });
+
+
+            // Dots
+            //
+            // If every note in the chord is dotted,
+            // attach dots to the whole chord.
+            //
+            const allDotted =
+                note.length > 0 &&
+                note.every(n => n.isDotted);
+
+
+            if (allDotted) {
+
+                Dot.buildAndAttach(
+                    [staveNote],
+                    { all: true }
+                );
+
             } else {
-                if (note.isDotted) {
-                    note1 = new StaveNote({ keys: [note.letter + note.accidental + "/" + note.octave], duration: note.duration });
-                    Dot.buildAndAttach([note1]);
-                    voice.push(note1);
-                } else {
-                    note1 = new StaveNote({ keys: [note.letter + note.accidental + "/" + note.octave], duration: note.duration });
-                    voice.push(note1);
-                }
-                if (note.accidental) {
-                    voice[index].addModifier(new Accidental(note.accidental));
-                }
-                if (isPreview) {
-                    note1.setStyle({
-                        fillStyle: "blue",
-                        strokeStyle: "blue"
-                    });
-                }
 
+                // Apply individual dots
+                note.forEach((n, i) => {
+
+                    if (n.isDotted) {
+                        Dot.buildAndAttach(
+                            [staveNote],
+                            { index: i }
+                        );
+                    }
+
+                });
             }
-        });
-        addRemainingRests(voice, stave, isPreview, notes);
 
-function addRemainingRests(voice, stave, isPreview = false, notes = []) {
-    const timeSig = stave.modifiers.find(modifier => modifier.attrs?.type === "TimeSignature");
+
+            // Articulations
+            //
+            // An articulation belongs to the chord,
+            // so only apply it once.
+            const articulationNote =
+                note.find(
+                    n => n.articulation
+                );
+
+            if (articulationNote) {
+                applyArticulation(
+                    staveNote,
+                    articulationNote
+                );
+            }
+
+
+        // -------------------------------------------------
+        // REST
+        // -------------------------------------------------
+
+        } else if (
+            note.duration.endsWith("r")
+        ) {
+
+            staveNote = new StaveNote({
+                keys: [
+                    note.duration === "wr"
+                        ? "d/5"
+                        : "b/4"
+                ],
+                duration: note.duration
+            });
+
+
+            // Whole-rest center alignment
+            if (
+                notes.length === 1 &&
+                note.duration === "wr"
+            ) {
+                staveNote.setCenterAlignment(
+                    true
+                );
+            }
+
+
+            // Dotted rest
+            applyDot(
+                staveNote,
+                note
+            );
+
+
+            // Articulations generally aren't
+            // useful on rests, so don't apply them.
+
+
+        // -------------------------------------------------
+        // NORMAL NOTE
+        // -------------------------------------------------
+
+        } else {
+
+            staveNote = new StaveNote({
+                keys: [
+                    `${note.letter}${note.accidental || ""}/${note.octave}`
+                ],
+                duration: note.duration
+            });
+
+
+            applyNoteModifiers(
+                staveNote,
+                note
+            );
+        }
+
+
+        // =================================================
+        // PREVIEW STYLE
+        // =================================================
+
+        if (isPreview) {
+            staveNote.setStyle({
+                fillStyle: "blue",
+                strokeStyle: "blue"
+            });
+        }
+
+
+        voice.push(staveNote);
+    });
+
+
+    // =====================================================
+    // REMAINING RESTS
+    // =====================================================
+
+    addRemainingRests(
+        voice,
+        stave,
+        isPreview,
+        notes
+    );
+
+
+    // =====================================================
+    // BEAMS
+    // =====================================================
+
+    const beams = [];
+    const beamVoices = [];
+
+    let index1;
+
+    beamIndices.forEach(bm => {
+
+        if (bm.type === "start") {
+            index1 = bm.index;
+        } else {
+
+            beamVoices.push(
+                voice.slice(
+                    index1,
+                    bm.index + 1
+                )
+            );
+        }
+    });
+
+
+    beamVoices.forEach(beamVoice => {
+
+        beams.push(
+            new Beam(beamVoice)
+        );
+    });
+
+
+    // =====================================================
+    // TIES / SLURS
+    // =====================================================
+
+const ties = [];
+const slurs = [];
+
+staveAndNotes.tieOrSlurIndices.forEach(item => {
+
+    if (
+        item.type === "tie" &&
+        voice[item.start] &&
+        voice[item.end]
+    ) {
+
+        ties.push(
+            new StaveTie({
+                firstNote: voice[item.start],
+                lastNote: voice[item.end],
+                firstIndexes: [0],
+                lastIndexes: [0]
+            })
+        );
+
+    } else if (
+        item.type === "slur" &&
+        voice[item.start] &&
+        voice[item.end]
+    ) {
+
+        slurs.push(
+            new Curve(
+                voice[item.start],
+                voice[item.end],
+                {
+                    position: "nearHead"
+                }
+            ));
+    }
+});
+
+    // =====================================================
+    // FORMAT + DRAW
+    // =====================================================
+
+    Formatter.FormatAndDraw(
+        context,
+        stave,
+        voice
+    );
+    
+    beams.forEach(beam => {
+
+        beam.setContext(context);
+
+        // Draw first — this creates the SVG element
+        beam.draw();
+
+        if (isPreview) {
+            const beamEl = beam.getSVGElement();
+
+            if (beamEl) {
+                beamEl.setAttribute("fill", "blue");
+                beamEl.setAttribute("stroke", "blue");
+            }
+        }
+    });
+
+    // Ties
+    ties.forEach(tie => {
+        tie.setContext(context).draw();
+
+        if (isPreview) {
+            const tieEl = tie.getSVGElement();
+
+            if (tieEl) {
+                tieEl.setAttribute("fill", "blue");
+                tieEl.setAttribute("stroke", "blue");
+            }
+        }
+    });
+
+    // Slurs
+    slurs.forEach(slur => {
+slur.setContext(context);
+
+// Get the SVG element containing the VexFlow drawing.
+const svg = context.svg;
+
+// Snapshot existing SVG elements BEFORE drawing.
+const before = svg
+    ? new Set(svg.querySelectorAll("path"))
+    : new Set();
+
+slur.draw();
+
+if (isPreview && svg) {
+
+    // Find paths created by Curve.draw().
+    const paths = [
+        ...svg.querySelectorAll("path")
+    ].filter(path => !before.has(path));
+
+    paths.forEach(path => {
+
+        path.setAttribute(
+            "fill",
+            "blue"
+        );
+
+        path.setAttribute(
+            "stroke",
+            "blue"
+        );
+
+        path.style.fill = "blue";
+        path.style.stroke = "blue";
+    });
+}
+
+    });
+
+    // =====================================================
+    // STORE VOICE
+    // =====================================================
+
+    const existingVoice =
+        voices.find(
+            v =>
+                v.stave === stave &&
+                v.counter === counter
+        );
+
+
+    if (existingVoice) {
+
+        existingVoice.voice = voice;
+
+    } else {
+
+        voices.push({
+            voice,
+            stave,
+            counter
+        });
+    }
+
+
+    return voice;
+}
+
+
+function addRemainingRests(voice, stave, isPreview, notes) {
+    const timeSig = stave.modifiers.find(
+        modifier => modifier.attrs?.type === "TimeSignature"
+    );
 
     if (!timeSig) return;
 
-    const [beats, beatValue] = timeSig.timeSpec.split("/").map(Number);
+    const [beats, beatValue] = timeSig.timeSpec
+        .split("/")
+        .map(Number);
 
     const RESOLUTION = 4096;
-    const totalTicks = (beats / beatValue) * RESOLUTION;
 
-    // Calculate duration from YOUR application's note data.
+    const totalTicks =
+        (beats / beatValue) * RESOLUTION;
+
+    const ticks = {
+        w: RESOLUTION,
+        h: RESOLUTION / 2,
+        q: RESOLUTION / 4,
+        "8": RESOLUTION / 8,
+        "16": RESOLUTION / 16,
+        "32": RESOLUTION / 32,
+        "64": RESOLUTION / 64
+    };
+
+
+    // =====================================================
+    // Calculate ticks used by existing notes/rests
+    // =====================================================
+
     const usedTicks = notes.reduce((total, note) => {
+
+        // Chord
         if (Array.isArray(note)) {
-            // Chord: all notes share the chord duration.
-            const duration = note[0].chordDuration;
-            return total + (RESOLUTION / duration);
+
+            const duration =
+                note[0].chordDuration;
+
+            let noteTicks =
+                ticks[duration] || 0;
+
+            // A chord can be dotted too.
+            if (note.some(n => n.isDotted)) {
+                noteTicks *= 1.5;
+            }
+
+            return total + noteTicks;
         }
 
-        // Ignore rests that already exist in the data.
-        if (note.isRest) return total;
 
+        // Single note/rest
+        const duration =
+            note.duration.endsWith("r")
+                ? note.duration.slice(0, -1)
+                : note.duration;
 
-        return total + (RESOLUTION / note.duration);
+        let noteTicks =
+            ticks[duration] || 0;
+
+        // Dotted note/rest = 1.5 × duration
+        if (note.isDotted) {
+            noteTicks *= 1.5;
+        }
+
+        return total + noteTicks;
+
     }, 0);
 
-    let remainingTicks = totalTicks - usedTicks;
+
+    let remainingTicks =
+        totalTicks - usedTicks;
 
     if (remainingTicks <= 0) return;
+
+
+    // =====================================================
+    // Available rest durations
+    // =====================================================
 
     const durations = [
         ["w", RESOLUTION],
@@ -195,99 +628,45 @@ function addRemainingRests(voice, stave, isPreview = false, notes = []) {
         ["8", RESOLUTION / 8],
         ["16", RESOLUTION / 16],
         ["32", RESOLUTION / 32],
-        ["64", RESOLUTION / 64],
+        ["64", RESOLUTION / 64]
     ];
 
-    while (remainingTicks > 0) {
-        let selected = null;
 
-        for (const [duration, ticks] of durations) {
-            if (ticks <= remainingTicks) {
-                selected = { duration, ticks };
-                break;
-            }
-        }
+    // =====================================================
+    // Fill remaining time with rests
+    // =====================================================
+
+    while (remainingTicks > 0) {
+
+        const selected = durations.find(
+            ([, durationTicks]) =>
+                durationTicks <= remainingTicks
+        );
 
         if (!selected) break;
 
-        const extraRest = new StaveNote({
-            keys: ["d/5"],
-            duration: selected.duration + "r",
+        const [duration, durationTicks] =
+            selected;
+
+
+        const rest = new StaveNote({
+            keys: ["b/4"],
+            duration: duration + "r"
         });
+
 
         if (isPreview) {
-            extraRest.setStyle({
+            rest.setStyle({
                 fillStyle: "blue",
-                strokeStyle: "blue",
+                strokeStyle: "blue"
             });
         }
 
-        voice.push(extraRest);
-        remainingTicks -= selected.ticks;
+        voice.push(rest);
+
+        remainingTicks -= durationTicks;
     }
 }
-
-
-        let beams = [];
-        let beamVoices = [];
-        let index1;
-        let index2;
-        beamIndices.forEach(bm => {
-            if (bm.type === "start") {
-                index1 = bm.index;
-            } else {
-                index2 = bm.index;
-                beamVoices.push(voice.slice(index1, index2 + 1));
-            }
-        });
-
-        let ties = [];
-        let slurs = [];
-
-        const tieOrSlurIndices = staveAndNotes.tieOrSlurIndices;
-            tieOrSlurIndices.forEach(tieOrSlur => {
-                if (tieOrSlur.type === "tie") {
-                    ties.push(
-                        new StaveTie({
-                        first_note: voice[tieOrSlur.start],
-                        last_note: voice[tieOrSlur.end],
-                        first_indices: [0],
-                        last_indices: [0],
-                    }));
-                } else {
-                    slurs.push(new Curve(voice[tieOrSlur.start], voice[tieOrSlur.end]));
-                }
-            });
-        beamVoices.forEach(beamVoice => beams.push(new Beam(beamVoice)));
-        Formatter.FormatAndDraw(context, stave, voice);
-        if (beams.length > 0) {
-            beams.forEach(beam => beam.setContext(context).draw());
-        }
-        if (ties.length > 0) {
-            ties.forEach(tie => tie.setContext(context).draw());
-        }
-        if (slurs.length > 0) {
-            slurs.forEach(slur => slur.setContext(context).draw());
-        }
-        let voiceFlag = false;
-        if (voices.length > 0) {
-            voices.forEach(v => {
-                if (v.stave === stave && v.counter === counter) {
-                    v.voice = voice;
-                    voiceFlag = true;
-                }
-            });
-            if (!voiceFlag) voices.push({voice, stave, counter});
-        } else {
-            voices.push({voice, stave, counter});
-        }
-
-        return voice;
-    }
-}
-
-
-
 
 function addVoiceHandler(notes, addOrChange, counter, beamIndices, tieOrSlurIndices) {
     let flag = false;

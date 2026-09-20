@@ -2,15 +2,15 @@ import {
     getCurrentContext,
     getCurrentStavesArray,
     redrawStaves
-} from "./staves/staveDrawing.js";
+} from "../staves/staveDrawing.js";
 
-import { getMousePosition } from "./selector.js";
-import { addVoice } from "./sheetmusic.js";
-import { staveState } from "./staves/staveState.js";
-import { selectedDuration } from "./mouseNtAdding/noteAddOpt.js";
-import { selectedAccidental } from "./mouseNtAdding/accidentalAddOpt.js";
-import { selectedNoteModifier } from "./mouseNtAdding/noteModifierAddOpt.js";
-import { selectedNotationConnectors } from "./mouseNtAdding/noteConnectOpt.js";
+import { getMousePosition } from "../selector.js";
+import { addVoice } from "../sheetmusic.js";
+import { staveState } from "../staves/staveState.js";
+import { selectedDuration } from "../mouseNtAdding/noteAddOpt.js";
+import { selectedAccidental } from "../mouseNtAdding/accidentalAddOpt.js";
+import { selectedNoteModifier } from "../mouseNtAdding/noteModifierAddOpt.js";
+import { selectedNotationConnectors } from "../mouseNtAdding/noteConnectOpt.js";
 
 
 let currentPosition = 0;

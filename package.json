@@ -9,7 +9,7 @@
   },
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build --base=/Easy-Score/",
     "preview": "vite preview"
   }
 }

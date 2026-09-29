@@ -105,12 +105,20 @@ function createPreviewNotes(
   ];
 }
 
-
 // ==================================================
 // RENDER CONNECTORS
 // ==================================================
 
-function renderNotationConnectors(
+// Resolves once the music font VexFlow starts loading on import is ready (drawing sooner measures noteheads with a fallback font)
+const musicFontReady = document.fonts.ready;
+
+// Draws the connector icon once the music font has loaded (straight away after that)
+function renderNotationConnectors(element, connectors) {
+  musicFontReady.then(() => drawNotationConnectors(element, connectors));
+}
+
+// Draws notes joined by these connectors into the element
+function drawNotationConnectors(
   element,
   connectors
 ) {
@@ -684,24 +692,6 @@ renderNotationConnectors(
 );
 
 updateNotationConnectorOptions();
-
-// ==================================================
-// REDRAW ONCE THE MUSIC FONT HAS LOADED
-// ==================================================
-
-// Icons drawn before Bravura finished loading were measured with a fallback font (noteheads off their stems): redraw them
-document.fonts.ready.then(() => {
-
-  // Every option in the dropdown
-  options.querySelectorAll(".notation-action-option").forEach(option => {
-    renderNotationConnectors(option, new Set([option.dataset.value]));
-  });
-
-  // The selected connectors shown on the button, then the options' on/off states again
-  renderNotationConnectors(selectedNote, selectedNotationConnectors);
-  updateNotationConnectorOptions();
-});
-
 
 // ==================================================
 // OPEN / CLOSE SELECT

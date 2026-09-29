@@ -37,8 +37,16 @@ const options =
 
 let selectedDuration = "q";
 
+// Resolves once the music font VexFlow starts loading on import is ready (drawing sooner measures noteheads with a fallback font)
+const musicFontReady = document.fonts.ready;
 
+// Draws the note icon once the music font has loaded (straight away after that)
 function renderNote(element, duration) {
+  musicFontReady.then(() => drawNote(element, duration));
+}
+
+// Draws a note icon of this duration into the element
+function drawNote(element, duration) {
 
   element.innerHTML = "";
 
@@ -222,21 +230,6 @@ durations.forEach(({ value, label }) => {
 // ==================================================
 
 chooseDuration("q");
-
-// ==================================================
-// REDRAW ONCE THE MUSIC FONT HAS LOADED
-// ==================================================
-
-// Icons drawn before Bravura finished loading were measured with a fallback font (noteheads off their stems): redraw them
-document.fonts.ready.then(() => {
-
-  // Every option in the dropdown
-  options.querySelectorAll(".duration-option").forEach(option => renderNote(option, option.dataset.value));
-
-  // The selected note shown on the button
-  renderNote(selectedNote, selectedDuration);
-});
-
 
 // ==================================================
 // TOGGLE DROPDOWN

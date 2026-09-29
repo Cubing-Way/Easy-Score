@@ -46,7 +46,16 @@ const options = document.getElementById("note-modifier-options");
 let selectedNoteModifier = noteModifiers[0];
 
 
+// Resolves once the music font VexFlow starts loading on import is ready (drawing sooner measures noteheads with a fallback font)
+const musicFontReady = document.fonts.ready;
+
+// Draws the modifier icon once the music font has loaded (straight away after that)
 function renderNoteModifier(element, modifier) {
+  musicFontReady.then(() => drawNoteModifier(element, modifier));
+}
+
+// Draws a note with this modifier into the element
+function drawNoteModifier(element, modifier) {
   element.innerHTML = "";
 
   const renderer = new Renderer(
@@ -159,17 +168,6 @@ noteModifiers.forEach(modifier => {
 });
 
 chooseNoteModifier("none");
-
-// Icons drawn before Bravura finished loading were measured with a fallback font (noteheads off their stems): redraw them
-document.fonts.ready.then(() => {
-  // Every option in the dropdown
-  options.querySelectorAll(".note-modifier-option").forEach(option => {
-    renderNoteModifier(option, noteModifiers.find(item => item.value === option.dataset.value));
-  });
-
-  // The selected modifier shown on the button
-  renderNoteModifier(selectedNote, selectedNoteModifier);
-});
 
 selected.addEventListener("click", event => {
   event.stopPropagation();

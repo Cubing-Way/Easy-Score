@@ -47,7 +47,16 @@ const options = document.getElementById("accidental-options");
 let selectedAccidental = accidentals[0];
 
 
+// Resolves once the music font VexFlow starts loading on import is ready (drawing sooner measures noteheads with a fallback font)
+const musicFontReady = document.fonts.ready;
+
+// Draws the accidental icon once the music font has loaded (straight away after that)
 function renderAccidental(element, accidental) {
+  musicFontReady.then(() => drawAccidental(element, accidental));
+}
+
+// Draws a note with this accidental into the element
+function drawAccidental(element, accidental) {
   element.innerHTML = "";
 
   const renderer = new Renderer(
@@ -146,17 +155,6 @@ accidentals.forEach(accidental => {
 });
 
 chooseAccidental("none");
-
-// Icons drawn before Bravura finished loading were measured with a fallback font (noteheads off their stems): redraw them
-document.fonts.ready.then(() => {
-  // Every option in the dropdown
-  options.querySelectorAll(".accidental-option").forEach(option => {
-    renderAccidental(option, accidentals.find(item => item.value === option.dataset.value));
-  });
-
-  // The selected accidental shown on the button
-  renderAccidental(selectedNote, selectedAccidental);
-});
 
 selected.addEventListener("click", event => {
   event.stopPropagation();

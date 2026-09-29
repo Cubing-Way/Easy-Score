@@ -6,6 +6,7 @@ import { selectedStaves } from "./selector.js";
 import { staveVoiceCounter } from "./options.js";
 import { noteHeadFlag, addNoteHeads } from "./configurations.js";
 import { staveState, projectState } from './staves/staveState.js';
+import { drawConnectorChainIndicator } from "./noteAdding/noteAddChainIndicator.js";
 
 let context = staveState.context;
 let stavesArray = staveState.stavesArray;
@@ -383,9 +384,14 @@ function addVoice(
 
     beamVoices.forEach(beamVoice => {
 
-        beams.push(
-            new Beam(beamVoice)
-        );
+        // VexFlow refuses some groups (e.g. one starting with a quarter note): leave those unbeamed instead of failing the whole stave
+        try {
+            beams.push(
+                new Beam(beamVoice)
+            );
+        } catch {
+            // Unbeamable group: its notes keep their own flags
+        }
     });
 
 
@@ -510,6 +516,13 @@ if (isPreview && svg) {
 }
 
     });
+
+    // =====================================================
+    // CONNECTOR CHAIN INDICATOR
+    // =====================================================
+
+    // Highlight the note a beam/tie/slur chain continues from
+    drawConnectorChainIndicator(staveAndNotes, voice);
 
     // =====================================================
     // STORE VOICE

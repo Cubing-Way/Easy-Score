@@ -18,11 +18,15 @@ import { isSameNote, getStaveAtPosition, resetHitboxes } from "./noteAddHelpers.
 
 import {
     hasConnectorSelected,
-    addSelectedConnectors,
+    getConnectorTypes,
+    hasConnectorChain,
+    endConnectorChain,
     selectConnectorEndpoint,
     getBeamSafeDuration
 } from "./noteAddConnectors.js";
 
+import { isNotationSelectOpen } from "../mouseNtAdding/noteConnectOpt.js";
+import { updateConnectorChainStatus } from "./noteAddChainIndicator.js";
 import { showPreview } from "./noteAddPreview.js";
 
 
@@ -38,10 +42,14 @@ function getStaveNotes(staveId) {
     return staveState.notesArray.find(nts => String(nts.staveId) === String(staveId));
 }
 
+// Refreshes hitboxes, preview and chain message after a note is added or edited
 function finishNoteAction(stave) {
     resetHitboxes();
     noteState.previousNote = null;
     showPreview(stave, noteState.currentPosition);
+
+    // The chain may have started or moved: keep its message in step
+    updateConnectorChainStatus(getConnectorTypes());
 }
 
 function createNote(pitch) {
@@ -194,9 +202,7 @@ function editExistingNote(stave, staveNotes, note, duration) {
             item.push(note);
         }
 
-        if (hasConnectorSelected()) {
-            selectConnectorEndpoint(staveNotes, noteIndex);
-        }
+        selectConnectorEndpoint(staveNotes, noteIndex);
 
         finishNoteAction(stave);
         return;
@@ -208,9 +214,7 @@ function editExistingNote(stave, staveNotes, note, duration) {
     if (isSameNote(item, note)) {
         applySelectedOptions(item);
 
-        if (hasConnectorSelected()) {
-            selectConnectorEndpoint(staveNotes, noteIndex);
-        }
+        selectConnectorEndpoint(staveNotes, noteIndex);
 
         finishNoteAction(stave);
         return;
@@ -226,9 +230,8 @@ function editExistingNote(stave, staveNotes, note, duration) {
 
     staveNotes.notes[noteIndex] = [item, note];
 
-    if (hasConnectorSelected()) {
-        selectConnectorEndpoint(staveNotes, noteIndex);
-    }
+    // Chain: set the connectors between the chain's note and this one (none selected: removes them)
+    selectConnectorEndpoint(staveNotes, noteIndex);
 
     finishNoteAction(stave);
 }
@@ -248,6 +251,10 @@ function createNewStaveData(stave, note) {
     };
 
     staveState.notesArray.push(staveNotes);
+
+    // With a connector selected, the stave's first note starts a chain (a rest ends any chain instead)
+    selectConnectorEndpoint(staveNotes, 0);
+
     finishNoteAction(stave);
 }
 
@@ -256,24 +263,12 @@ function createNewStaveData(stave, note) {
 // CREATE NEW NOTE
 // --------------------------------------------------
 
+// Appends a note; with a connector selected it joins the chain (a rest ends the chain instead)
 function addNewNote(stave, staveNotes, note) {
-    const newIndex = staveNotes.notes.length;
-    const connectorStartIndex = noteState.connectorStartIndex;
-
     staveNotes.notes.push(note);
 
-    if (hasConnectorSelected()) {
-        const startIndex = connectorStartIndex !== null
-            ? connectorStartIndex
-            : newIndex - 1;
-
-        if (startIndex >= 0 && startIndex !== newIndex) {
-            addSelectedConnectors(staveNotes, startIndex, newIndex);
-        }
-
-        noteState.connectorStartIndex = newIndex;
-        noteState.connectorStartStaveId = staveNotes.staveId;
-    }
+    // Connect the chain's note to the new one and continue the chain from it
+    selectConnectorEndpoint(staveNotes, staveNotes.notes.length - 1);
 
     finishNoteAction(stave);
 }
@@ -324,12 +319,66 @@ function finishDragging() {
 
 
 // --------------------------------------------------
+// CONNECTOR CHAIN
+// --------------------------------------------------
+
+// Redraws the score (with the hover preview when the mouse is on a stave) so the chain highlight is current
+function redrawConnectorChain() {
+    const stave = getCurrentStave();
+
+    if (stave && noteState.currentPosition !== null) {
+        showPreview(stave, noteState.currentPosition);
+    } else {
+        redrawStaves();
+    }
+}
+
+// True while typing in a text box (e.g. the page title), where Escape has its own meaning
+function isTypingInTextField(target) {
+    return Boolean(target?.isContentEditable || target?.matches?.("textarea, input:not([type]), input[type='text']"));
+}
+
+// Escape ends the running chain; the next clicked or added note starts a new one
+function onChainEscape(event) {
+    if (event.key !== "Escape" || !hasConnectorChain()) return;
+
+    // Leave Escape to the text box being edited, or to the open connector menu (it closes first)
+    if (isTypingInTextField(event.target) || isNotationSelectOpen()) return;
+
+    endConnectorChain();
+    updateConnectorChainStatus(getConnectorTypes());
+    redrawConnectorChain();
+}
+
+// Whether a connector was selected at the last menu change, to spot switching between adding and removing
+let hadConnectorSelected = hasConnectorSelected();
+
+// Keeps the chain in step with the connector menu: switching between adding (a connector on) and removing (none on) ends the chain
+function onConnectorsChange() {
+    const connectorSelected = hasConnectorSelected();
+
+    // Mode switched: end the chain so an add chain doesn't turn into a remove chain (or back)
+    if (connectorSelected !== hadConnectorSelected && hasConnectorChain()) {
+        endConnectorChain();
+        redrawConnectorChain();
+    }
+
+    hadConnectorSelected = connectorSelected;
+    updateConnectorChainStatus(getConnectorTypes());
+}
+
+
+// --------------------------------------------------
 // EVENTS
 // --------------------------------------------------
 
 document.addEventListener("mousemove", onStaveLineHover);
 document.addEventListener("click", addNtsByClick);
 document.addEventListener("mouseup", finishDragging);
+
+// Capture phase: runs before the connector menu's own Escape handler has closed the menu
+document.addEventListener("keydown", onChainEscape, true);
+document.addEventListener("notation-connectors-change", onConnectorsChange);
 
 
 // --------------------------------------------------

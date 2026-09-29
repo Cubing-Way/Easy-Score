@@ -8,7 +8,11 @@ import { selectedNoteModifier } from "../mouseNtAdding/noteModifierAddOpt.js";
 import { noteState, treblePositionToNote } from "./noteAddState.js";
 import { isSameNote, isRest } from "./noteAddHelpers.js";
 
-import { hasConnectorSelected, addPreviewConnector } from "./noteAddConnectors.js";
+import { 
+    hasConnectorSelected,
+    applySelectedConnectors, 
+    getConnectorChainStart 
+} from "./noteAddConnectors.js";
 
 import {
     createSingleNoteHitbox,
@@ -102,17 +106,14 @@ function showPreview(stave, position) {
 
 
         const hoverIndex = findNoteIndex(existing.notes);
+        const chainStart = getConnectorChainStart(existing);
 
-        if (
-            hasConnectorSelected() &&
-            noteState.connectorStartIndex !== null &&
-            String(noteState.connectorStartStaveId) === String(stave.attrs.id) &&
-            hoverIndex !== -1
-        ) {
-            addPreviewConnector(
+        // Preview the connectors between the chain's note and the hovered note (none selected: they disappear)
+        if (chainStart !== null && hoverIndex !== -1) {
+            applySelectedConnectors(
                 previewBeamIndices,
                 previewTieOrSlurIndices,
-                noteState.connectorStartIndex,
+                chainStart,
                 hoverIndex
             );
         }
@@ -125,23 +126,14 @@ function showPreview(stave, position) {
         previewNotes = [...existing.notes, previewNote];
 
         const newIndex = previewNotes.length - 1;
+        const chainStart = getConnectorChainStart(existing);
 
-        if (
-            hasConnectorSelected() &&
-            noteState.connectorStartIndex !== null &&
-            String(noteState.connectorStartStaveId) === String(stave.attrs.id)
-        ) {
-            addPreviewConnector(
+        // Preview the connection from the chain's note to the new note (no chain: it starts one; a rest ends it)
+        if (hasConnectorSelected() && chainStart !== null && !isRest(previewNote)) {
+            applySelectedConnectors(
                 previewBeamIndices,
                 previewTieOrSlurIndices,
-                noteState.connectorStartIndex,
-                newIndex
-            );
-        } else if (hasConnectorSelected() && newIndex > 0) {
-            addPreviewConnector(
-                previewBeamIndices,
-                previewTieOrSlurIndices,
-                newIndex - 1,
+                chainStart,
                 newIndex
             );
         }

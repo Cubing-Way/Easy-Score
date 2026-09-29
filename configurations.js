@@ -432,6 +432,9 @@ function loadAllCopies() {
   document.getElementById("title-1").addEventListener("click", transformToInput2);
 }
 
+// Save As modal: shown by Save As, hidden again after saving
+const modal = document.getElementById("saveAsModal");
+
 function saveAsFunction() {
   modal.style.display = "flex";
 };  

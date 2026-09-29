@@ -28,6 +28,9 @@
   --accent-hover: #809cff;
   --danger: #ef6464;
 
+  /* Connector chain highlight (on the score and in its message) */
+  --chain-indicator: #f59e0b;
+
   --paper: #ffffff;
   --paper-border: #d9dce2;
 
@@ -1254,6 +1257,151 @@ button:focus-visible {
 .notation-action-option:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
+}
+
+
+/* =========================================================
+   CONNECTOR CHAIN
+   ========================================================= */
+
+/* Highlight behind the note a beam/tie/slur chain continues from */
+.connector-chain-indicator {
+  fill: var(--chain-indicator);
+  fill-opacity: 0.2;
+
+  stroke: var(--chain-indicator);
+  stroke-width: 1.5;
+
+  pointer-events: none;
+}
+
+/* Floating message about the chain, shown while a connector is selected */
+.chain-status {
+  position: fixed;
+
+  left: 50%;
+  bottom: 12px;
+
+  transform: translateX(-50%);
+
+  z-index: 100;
+
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  width: max-content;
+  max-width: min(640px, calc(100vw - 24px));
+
+  padding: 9px 14px;
+
+  background: rgba(25, 28, 35, 0.94);
+
+  border: 1px solid var(--border);
+  border-radius: 10px;
+
+  box-shadow: var(--shadow);
+
+  backdrop-filter: blur(12px);
+
+  color: var(--text-muted);
+
+  font-size: 13px;
+  line-height: 1.4;
+
+  pointer-events: none;
+}
+
+/* Hidden while no connector is selected (display: flex would otherwise override [hidden]) */
+.chain-status[hidden] {
+  display: none;
+}
+
+/* Running chain: border in the highlight colour */
+.chain-status.active {
+  border-color: var(--chain-indicator);
+}
+
+/* Which connectors are chaining */
+.chain-status strong {
+  color: var(--text);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* Small copy of the note highlight, so the message can point at it */
+.chain-status-swatch {
+  flex: none;
+
+  display: grid;
+  place-items: center;
+
+  width: 20px;
+  height: 24px;
+
+  border: 1.5px solid var(--chain-indicator);
+  border-radius: 5px;
+
+  background: color-mix(in srgb, var(--chain-indicator) 20%, var(--paper));
+
+  color: #000;
+
+  font-size: 15px;
+  line-height: 1;
+}
+
+/* Esc key cap */
+.chain-status kbd {
+  display: inline-block;
+
+  padding: 0 5px;
+
+  border: 1px solid var(--border-light);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+
+  background: var(--panel-hover);
+
+  color: var(--text);
+
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+/* Remove chain (no connector selected): the note highlight turns red */
+.connector-chain-indicator.removing {
+  fill: var(--danger);
+  stroke: var(--danger);
+}
+
+/* Remove chain: message border in the same red */
+.chain-status.active.removing {
+  border-color: var(--danger);
+}
+
+/* Remove chain: the small note swatch matches the red highlight */
+.chain-status.removing .chain-status-swatch {
+  border-color: var(--danger);
+  background: color-mix(in srgb, var(--danger) 20%, var(--paper));
+}
+
+/* Narrow screens: sit above the page controls in the bottom-left corner */
+@media (max-width: 900px) {
+
+  .chain-status {
+    bottom: 120px;
+  }
+
+}
+
+/* Print: no highlight on paper */
+@media print {
+
+  .connector-chain-indicator {
+    display: none;
+  }
+
 }
 
 

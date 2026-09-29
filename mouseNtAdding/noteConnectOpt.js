@@ -509,6 +509,29 @@ function toggleNotationConnector(
   // ==================================================
 
   updateNotationConnectorOptions();
+
+
+  // ==================================================
+  // TELL NOTE ADDING (ENDS OR RELABELS THE CHAIN)
+  // ==================================================
+
+  document.dispatchEvent(
+    new CustomEvent(
+      "notation-connectors-change"
+    )
+  );
+}
+
+
+// ==================================================
+// IS SELECT OPEN
+// ==================================================
+
+function isNotationSelectOpen() {
+
+  return select.classList.contains(
+    "open"
+  );
 }
 
 
@@ -737,4 +760,5 @@ document.addEventListener(
 
 export {
   selectedNotationConnectors,
+  isNotationSelectOpen,
 };

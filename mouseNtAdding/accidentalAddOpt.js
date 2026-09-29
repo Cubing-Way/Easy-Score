@@ -147,6 +147,17 @@ accidentals.forEach(accidental => {
 
 chooseAccidental("none");
 
+// Icons drawn before Bravura finished loading were measured with a fallback font (noteheads off their stems): redraw them
+document.fonts.ready.then(() => {
+  // Every option in the dropdown
+  options.querySelectorAll(".accidental-option").forEach(option => {
+    renderAccidental(option, accidentals.find(item => item.value === option.dataset.value));
+  });
+
+  // The selected accidental shown on the button
+  renderAccidental(selectedNote, selectedAccidental);
+});
+
 selected.addEventListener("click", event => {
   event.stopPropagation();
   document.getElementById("duration-select").classList.remove("open");

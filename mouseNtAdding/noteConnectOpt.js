@@ -677,13 +677,30 @@ notationConnectors.forEach(
 // DEFAULT PREVIEW
 // ==================================================
 
+
 renderNotationConnectors(
   selectedNote,
   selectedNotationConnectors
 );
 
-
 updateNotationConnectorOptions();
+
+// ==================================================
+// REDRAW ONCE THE MUSIC FONT HAS LOADED
+// ==================================================
+
+// Icons drawn before Bravura finished loading were measured with a fallback font (noteheads off their stems): redraw them
+document.fonts.ready.then(() => {
+
+  // Every option in the dropdown
+  options.querySelectorAll(".notation-action-option").forEach(option => {
+    renderNotationConnectors(option, new Set([option.dataset.value]));
+  });
+
+  // The selected connectors shown on the button, then the options' on/off states again
+  renderNotationConnectors(selectedNote, selectedNotationConnectors);
+  updateNotationConnectorOptions();
+});
 
 
 // ==================================================

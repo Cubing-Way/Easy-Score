@@ -158,9 +158,18 @@ noteModifiers.forEach(modifier => {
   options.appendChild(option);
 });
 
-
 chooseNoteModifier("none");
 
+// Icons drawn before Bravura finished loading were measured with a fallback font (noteheads off their stems): redraw them
+document.fonts.ready.then(() => {
+  // Every option in the dropdown
+  options.querySelectorAll(".note-modifier-option").forEach(option => {
+    renderNoteModifier(option, noteModifiers.find(item => item.value === option.dataset.value));
+  });
+
+  // The selected modifier shown on the button
+  renderNoteModifier(selectedNote, selectedNoteModifier);
+});
 
 selected.addEventListener("click", event => {
   event.stopPropagation();

@@ -217,12 +217,25 @@ durations.forEach(({ value, label }) => {
   options.appendChild(option);
 });
 
-
 // ==================================================
 // DEFAULT VALUE
 // ==================================================
 
 chooseDuration("q");
+
+// ==================================================
+// REDRAW ONCE THE MUSIC FONT HAS LOADED
+// ==================================================
+
+// Icons drawn before Bravura finished loading were measured with a fallback font (noteheads off their stems): redraw them
+document.fonts.ready.then(() => {
+
+  // Every option in the dropdown
+  options.querySelectorAll(".duration-option").forEach(option => renderNote(option, option.dataset.value));
+
+  // The selected note shown on the button
+  renderNote(selectedNote, selectedDuration);
+});
 
 
 // ==================================================

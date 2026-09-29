@@ -14,7 +14,12 @@ import { selectedNoteModifier } from "../mouseNtAdding/noteModifierAddOpt.js";
 
 import { noteState, treblePositionToNote } from "./noteAddState.js";
 
-import { isSameNote, getStaveAtPosition, resetHitboxes } from "./noteAddHelpers.js";
+import { 
+    isSameNote, 
+    getStaveAtPosition, 
+    resetHitboxes, 
+    fitsInBar 
+} from "./noteAddHelpers.js";
 
 import {
     hasConnectorSelected,
@@ -292,6 +297,9 @@ function addNtsByClick() {
     const duration = getBeamSafeDuration(selectedDuration);
     const note = createNote(pitch);
     const staveNotes = getStaveNotes(noteState.staveId);
+
+    // Adding a note the bar has no room left for (clicking an existing note to edit it is still allowed)
+    if (!noteState.previousNote && !fitsInBar(stave, staveNotes?.notes ?? [], note)) return;
 
     if (!staveNotes) {
         createNewStaveData(stave, note);

@@ -6,7 +6,7 @@ import { selectedAccidental } from "../mouseNtAdding/accidentalAddOpt.js";
 import { selectedNoteModifier } from "../mouseNtAdding/noteModifierAddOpt.js";
 
 import { noteState, treblePositionToNote } from "./noteAddState.js";
-import { isSameNote, isRest } from "./noteAddHelpers.js";
+import { isSameNote, isRest, fitsInBar } from "./noteAddHelpers.js";
 
 import { 
     hasConnectorSelected,
@@ -62,9 +62,9 @@ function showPreview(stave, position) {
     // Empty stave.
 
     if (!existing) {
-        previewNotes = [previewNote];
+        // A note longer than the whole bar can't be added, so it isn't previewed
+        previewNotes = fitsInBar(stave, [], previewNote) ? [previewNote] : [];
     }
-
 
     // Editing an existing note or chord.
 
@@ -119,7 +119,12 @@ function showPreview(stave, position) {
         }
     }
 
+    // Bar full (or the note is longer than what's left): show the bar as it is, since a click won't add the note.
 
+    else if (!fitsInBar(stave, existing.notes, previewNote)) {
+        previewNotes = [...existing.notes];
+    }
+    
     // Adding a new note.
 
     else {

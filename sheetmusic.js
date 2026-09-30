@@ -7,6 +7,7 @@ import { staveVoiceCounter } from "./options.js";
 import { noteHeadFlag, addNoteHeads } from "./configurations.js";
 import { staveState, projectState } from './staves/staveState.js';
 import { drawConnectorChainIndicator } from "./noteAdding/noteAddChainIndicator.js";
+import { getBarCapacityTicks } from "./noteAdding/noteAddHelpers.js";
 
 let context = staveState.context;
 let stavesArray = staveState.stavesArray;
@@ -555,20 +556,13 @@ if (isPreview && svg) {
 
 
 function addRemainingRests(voice, stave, isPreview, notes) {
-    const timeSig = stave.modifiers.find(
-        modifier => modifier.attrs?.type === "TimeSignature"
-    );
+    // Ticks this bar holds: from its own time signature, or the nearest one to its left on the same row
+    const totalTicks = getBarCapacityTicks(stave);
 
-    if (!timeSig) return;
-
-    const [beats, beatValue] = timeSig.timeSpec
-        .split("/")
-        .map(Number);
+    // No time signature to go by: no rests
+    if (!Number.isFinite(totalTicks)) return;
 
     const RESOLUTION = 4096;
-
-    const totalTicks =
-        (beats / beatValue) * RESOLUTION;
 
     const ticks = {
         w: RESOLUTION,

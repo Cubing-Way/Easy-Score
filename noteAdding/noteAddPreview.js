@@ -6,7 +6,7 @@ import { selectedAccidental } from "../mouseNtAdding/accidentalAddOpt.js";
 import { selectedNoteModifier } from "../mouseNtAdding/noteModifierAddOpt.js";
 
 import { noteState, treblePositionToNote } from "./noteAddState.js";
-import { isSameNote, isRest, fitsInBar } from "./noteAddHelpers.js";
+import { isSameNote, isRest, fitsInBar, notesFitInBar } from "./noteAddHelpers.js";
 
 import { 
     hasConnectorSelected,
@@ -51,6 +51,10 @@ function showPreview(stave, position) {
     const previewNote = createPreviewNote(pitch);
 
     let previewNotes;
+
+    // Blue only while the preview shows a change that fits the bar; otherwise the bar keeps its normal colours
+    let isPreviewing = true;
+
     const previewBeamIndices = existing?.beamIndices ? [...existing.beamIndices] : [];
     const previewTieOrSlurIndices = existing?.tieOrSlurIndices ? [...existing.tieOrSlurIndices] : [];
 
@@ -64,6 +68,9 @@ function showPreview(stave, position) {
     if (!existing) {
         // A note longer than the whole bar can't be added, so it isn't previewed
         previewNotes = fitsInBar(stave, [], previewNote) ? [previewNote] : [];
+
+        // Nothing previewed: the bar's rests stay black
+        isPreviewing = previewNotes.length > 0;
     }
 
     // Editing an existing note or chord.
@@ -104,12 +111,17 @@ function showPreview(stave, position) {
             ];
         });
 
+        // A change that would overflow the bar isn't previewed: the bar shows as it is, in its normal colours (a same-length chord still fits)
+        if (!notesFitInBar(stave, previewNotes)) {
+            previewNotes = [...existing.notes];
+            isPreviewing = false;
+        }
 
         const hoverIndex = findNoteIndex(existing.notes);
         const chainStart = getConnectorChainStart(existing);
 
-        // Preview the connectors between the chain's note and the hovered note (none selected: they disappear)
-        if (chainStart !== null && hoverIndex !== -1) {
+        // Preview the connectors between the chain's note and the hovered note, when the change is previewed (none selected: they disappear)
+        if (isPreviewing && chainStart !== null && hoverIndex !== -1) {
             applySelectedConnectors(
                 previewBeamIndices,
                 previewTieOrSlurIndices,
@@ -119,10 +131,11 @@ function showPreview(stave, position) {
         }
     }
 
-    // Bar full (or the note is longer than what's left): show the bar as it is, since a click won't add the note.
+    // Bar full (or the note is longer than what's left): show the bar as it is, in its normal colours, since a click won't add the note.
 
     else if (!fitsInBar(stave, existing.notes, previewNote)) {
         previewNotes = [...existing.notes];
+        isPreviewing = false;
     }
     
     // Adding a new note.
@@ -157,7 +170,9 @@ function showPreview(stave, position) {
 
     redrawStaves({ hideNotesForStaveId: stave.attrs.id });
 
-    const notes = addVoice(stave, staveAndNotes, true);
+    // Drawn blue only while previewing a change
+    const notes = addVoice(stave, staveAndNotes, isPreviewing);
+    
     if (!Array.isArray(notes)) return;
 
     const actualStaveNotes = staveState.notesArray.find(nts => String(nts.staveId) === String(stave.attrs.id));

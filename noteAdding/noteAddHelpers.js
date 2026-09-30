@@ -145,6 +145,12 @@ function fitsInBar(stave, notes, note) {
     return usedTicks + getItemTicks(note) <= getBarCapacityTicks(stave);
 }
 
+// True when these notes together fit in the bar (the automatic rests don't count)
+function notesFitInBar(stave, notes) {
+    return notes.reduce((total, item) => total + getItemTicks(item), 0) <= getBarCapacityTicks(stave);
+}
+
+
 export {
     isSameNote,
     isRest,
@@ -152,5 +158,7 @@ export {
     getStaveCenterY,
     getStaveAtPosition,
     resetHitboxes,
-    fitsInBar
+    fitsInBar,
+    getBarCapacityTicks,
+    notesFitInBar
 };
